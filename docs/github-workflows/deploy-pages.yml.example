@@ -1,6 +1,8 @@
-# DonationChain — GitHub Pages deploy (static web)
-# Caching: sparse checkout + shallow clone (no npm for static site)
-# Live: https://<user>.github.io/<repo>/
+# DonationChain — GitHub Pages deploy
+# Method A: official actions/deploy-pages (needs Settings → Pages → Source: GitHub Actions)
+# Method B: fallback pushes to gh-pages branch (needs Settings → Pages → Branch: gh-pages / root)
+#
+# If you see "Failed to create deployment (status: 404)", use Method B settings below.
 
 name: Deploy Web to GitHub Pages
 
@@ -17,8 +19,9 @@ on:
         required: false
         default: "Manual deploy"
 
+# contents:write needed for gh-pages branch push fallback
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -34,7 +37,6 @@ jobs:
     name: Build & validate
     runs-on: ubuntu-latest
     steps:
-      # Shallow + sparse: only fetch web app tree (faster, less bandwidth)
       - name: Checkout (sparse)
         uses: actions/checkout@v4
         with:
@@ -46,84 +48,55 @@ jobs:
       - name: Verify required files
         run: |
           set -euo pipefail
-          echo "Checking ${{ env.WEB_DIR }}…"
           required=(
-            index.html
-            js/app.js
-            js/config.js
-            js/i18n.js
-            js/ledger.js
-            js/merkle.js
-            admin/index.html
-            donor/dashboard.html
-            explorer.html
-            manifest.json
-            sw.js
-            css/rtl.css
+            index.html js/app.js js/config.js js/i18n.js js/ledger.js js/merkle.js
+            admin/index.html donor/dashboard.html explorer.html
+            manifest.json sw.js css/rtl.css
           )
-          missing=0
           for f in "${required[@]}"; do
             if [[ ! -f "${{ env.WEB_DIR }}/$f" ]]; then
-              echo "::error file=${{ env.WEB_DIR }}/$f::Missing $f"
-              missing=1
-            else
-              echo "  ✓ $f"
+              echo "::error::Missing $f"
+              exit 1
             fi
+            echo "  ✓ $f"
           done
-          if [[ "$missing" -ne 0 ]]; then
-            echo "Required files missing — aborting deploy"
-            exit 1
-          fi
 
-      - name: Setup Node (for syntax check only)
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Syntax-check JavaScript
         run: |
-          set -euo pipefail
           for f in ${{ env.WEB_DIR }}/js/*.js; do
-            echo "node --check $f"
             node --check "$f"
           done
 
-      - name: Site summary
-        run: |
-          {
-            echo "## DonationChain web bundle"
-            echo ""
-            echo "| Item | Value |"
-            echo "|------|-------|"
-            echo "| Branch | \`${{ github.ref_name }}\` |"
-            echo "| Commit | \`${{ github.sha }}\` |"
-            echo "| Actor | ${{ github.actor }} |"
-            echo "| Trigger | ${{ github.event_name }} |"
-            echo "| Checkout | sparse \`${{ env.WEB_DIR }}/\` + fetch-depth 1 |"
-            if [ -n "${{ github.event.inputs.reason }}" ]; then
-              echo "| Reason | ${{ github.event.inputs.reason }} |"
-            fi
-            echo ""
-            echo "Files:"
-            find "${{ env.WEB_DIR }}" -type f | wc -l | xargs -I{} echo "- **{}** files"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Prepare publish directory
+      - name: Prepare _site
         run: |
           mkdir -p _site
           cp -a ${{ env.WEB_DIR }}/. _site/
-          find _site -name '*.map' -delete 2>/dev/null || true
           echo "<!-- deployed $(date -u +%Y-%m-%dT%H:%M:%SZ) ${{ github.sha }} -->" >> _site/index.html
 
-      - name: Upload Pages artifact
+      - name: Upload artifact (for official Pages action)
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
-  deploy:
-    name: Deploy
+      - name: Upload site tarball (for branch deploy)
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-static
+          path: _site
+          retention-days: 1
+
+  # Official GitHub Pages deployment (requires Pages source = GitHub Actions)
+  deploy-actions:
+    name: Deploy (GitHub Actions source)
     needs: build
     runs-on: ubuntu-latest
+    # Continue workflow even if this fails (404 when Pages not configured)
+    continue-on-error: true
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -132,12 +105,37 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Post URL to summary
+  # Reliable fallback: publish folder to gh-pages branch
+  deploy-branch:
+    name: Deploy (gh-pages branch)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download site
+        uses: actions/download-artifact@v4
+        with:
+          name: site-static
+          path: _site
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _site
+          publish_branch: gh-pages
+          force_orphan: true
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+
+      - name: Summary
         run: |
           {
-            echo "### Deployed"
+            echo "### Pages deploy"
             echo ""
-            echo "Site published via GitHub Pages."
+            echo "1. Open **Settings → Pages**"
+            echo "2. Source: **Deploy from a branch**"
+            echo "3. Branch: **gh-pages** / folder: **/ (root)**"
+            echo "4. Save — site: https://mrbahramkhan.github.io/donationchain/"
             echo ""
-            echo "Settings → Pages → Source: **GitHub Actions**"
+            echo "Optional: Source **GitHub Actions** if you prefer the official deploy action."
           } >> "$GITHUB_STEP_SUMMARY"
