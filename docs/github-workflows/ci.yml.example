@@ -1,0 +1,50 @@
+# DonationChain — continuous checks (no deploy)
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+    paths:
+      - "donationchain/**"
+      - "donationchain_backend/**"
+      - "donationchain_contracts/**"
+      - ".github/workflows/ci.yml"
+
+jobs:
+  web:
+    name: Web JS check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Node syntax
+        run: |
+          for f in donationchain/js/*.js; do
+            node --check "$f"
+          done
+
+  backend:
+    name: Backend syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Node syntax (no install required)
+        run: |
+          for f in donationchain_backend/src/**/*.js donationchain_backend/src/*.js; do
+            [ -f "$f" ] || continue
+            echo "check $f"
+            node --check "$f"
+          done
+
+  contracts:
+    name: Solidity present
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Contract file exists
+        run: |
+          test -f donationchain_contracts/contracts/DonationRegistry.sol
+          test -f donationchain_contracts/abi/DonationRegistry.json
+          echo "DonationRegistry.sol OK"

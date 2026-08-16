@@ -1,0 +1,130 @@
+[
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "bytes32", "name": "receiptHash", "type": "bytes32" },
+      { "indexed": false, "internalType": "bytes32", "name": "dataHash", "type": "bytes32" },
+      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "reporter", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "index", "type": "uint256" }
+    ],
+    "name": "DonationAnchored",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "bytes32", "name": "tipHash", "type": "bytes32" },
+      { "indexed": false, "internalType": "uint256", "name": "blockIndex", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "anchorId", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "reporter", "type": "address" }
+    ],
+    "name": "TipAnchored",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "receiptHash", "type": "bytes32" },
+      { "internalType": "bytes32", "name": "dataHash", "type": "bytes32" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ],
+    "name": "anchorDonation",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32[]", "name": "receiptHashes", "type": "bytes32[]" },
+      { "internalType": "bytes32[]", "name": "dataHashes", "type": "bytes32[]" },
+      { "internalType": "uint256[]", "name": "amounts", "type": "uint256[]" }
+    ],
+    "name": "anchorDonationBatch",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "tipHash", "type": "bytes32" },
+      { "internalType": "uint256", "name": "blockIndex", "type": "uint256" },
+      { "internalType": "string", "name": "note", "type": "string" }
+    ],
+    "name": "anchorLedgerTip",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "donationCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "receiptHash", "type": "bytes32" }],
+    "name": "getProof",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "bytes32", "name": "receiptHash", "type": "bytes32" },
+          { "internalType": "bytes32", "name": "dataHash", "type": "bytes32" },
+          { "internalType": "uint256", "name": "amount", "type": "uint256" },
+          { "internalType": "uint64", "name": "timestamp", "type": "uint64" },
+          { "internalType": "address", "name": "reporter", "type": "address" }
+        ],
+        "internalType": "struct DonationRegistry.DonationProof",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "receiptHash", "type": "bytes32" }],
+    "name": "isAnchored",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "latestTipAnchor",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "bytes32", "name": "tipHash", "type": "bytes32" },
+          { "internalType": "uint256", "name": "blockIndex", "type": "uint256" },
+          { "internalType": "uint64", "name": "timestamp", "type": "uint64" },
+          { "internalType": "string", "name": "note", "type": "string" }
+        ],
+        "internalType": "struct DonationRegistry.TipAnchor",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "tipAnchorCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

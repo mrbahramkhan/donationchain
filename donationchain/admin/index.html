@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — DonationChain</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:'#1A56DB',accent:'#06B6D4',success:'#059669',warning:'#D97706',danger:'#DC2626'}}}}</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body{font-family:Inter,system-ui,sans-serif}
+    .nav-item.active{background:rgba(26,86,219,.25);color:#fff}
+    .panel{display:none}
+    .panel.active{display:block}
+    .toggle:checked + .toggle-track{background:#1A56DB}
+    .toggle:checked + .toggle-track .toggle-dot{transform:translateX(1.25rem)}
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased">
+  <div class="flex min-h-screen">
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col">
+      <div class="p-5 border-b border-slate-700">
+        <div class="flex items-center gap-2 font-bold">
+          <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-sm">D</div>
+          <span id="sidebar-brand">DonationChain</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1">Super Admin</p>
+      </div>
+      <nav class="p-3 space-y-0.5 text-sm flex-1 overflow-y-auto" id="side-nav">
+        <button data-panel="overview" class="nav-item active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-chart-pie w-4"></i> Overview</button>
+        <button data-panel="pipeline" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-columns w-4"></i> Case pipeline</button>
+        <button data-panel="fraud" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-shield-halved w-4"></i> Fraud alerts</button>
+        <button data-panel="payments-log" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-money-bill-wave w-4"></i> Payments log</button>
+        <p class="text-[10px] uppercase tracking-wider text-slate-500 px-3 pt-4 pb-1">Configuration</p>
+        <button data-panel="cfg-general" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-sliders w-4"></i> General</button>
+        <button data-panel="cfg-donations" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-hand-holding-heart w-4"></i> Donations</button>
+        <button data-panel="cfg-payments" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-credit-card w-4"></i> Payment methods</button>
+        <button data-panel="cfg-categories" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-tags w-4"></i> Categories</button>
+        <button data-panel="cfg-zakat" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-moon w-4"></i> Zakat</button>
+        <button data-panel="cfg-notify" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-bell w-4"></i> Notifications</button>
+        <button data-panel="cfg-chain" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-link w-4"></i> Blockchain</button>
+        <button data-panel="cfg-features" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-toggle-on w-4"></i> Feature flags</button>
+        <button data-panel="cfg-seo" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-search w-4"></i> SEO & branding</button>
+        <a href="../explorer.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 mt-4"><i class="fas fa-compass w-4"></i> Explorer</a>
+        <a href="../index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800"><i class="fas fa-arrow-left w-4"></i> Back to site</a>
+      </nav>
+    </aside>
+
+    <main class="flex-1 overflow-auto">
+      <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 flex flex-wrap justify-between items-center gap-3 sticky top-0 z-10">
+        <div>
+          <h1 class="text-lg font-bold" id="panel-title">Overview</h1>
+          <p class="text-xs text-slate-400">Configurations save to this browser (localStorage demo)</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button onclick="saveAll()" class="bg-primary text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-blue-700"><i class="fas fa-save mr-1"></i> Save all</button>
+          <button onclick="exportConfig()" class="text-sm font-medium border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-50">Export JSON</button>
+          <label class="text-sm font-medium border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-50 cursor-pointer">
+            Import JSON<input type="file" accept="application/json" class="hidden" onchange="importConfig(event)" />
+          </label>
+          <button onclick="resetConfig()" class="text-sm font-medium text-slate-500 px-3 py-2 rounded-xl hover:bg-slate-100">Reset</button>
+        </div>
+      </header>
+
+      <div class="p-4 sm:p-6 space-y-6">
+        <!-- OVERVIEW -->
+        <section id="panel-overview" class="panel active space-y-6">
+          <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+              <p class="text-xs font-semibold text-slate-500 uppercase">Pending cases</p>
+              <p class="text-3xl font-extrabold mt-1">47</p>
+              <p class="text-xs text-warning mt-1 font-medium">12 critical</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+              <p class="text-xs font-semibold text-slate-500 uppercase">Local demo volume</p>
+              <p class="text-3xl font-extrabold mt-1" id="live-volume">PKR 0</p>
+              <p class="text-xs text-slate-400 mt-1 font-medium" id="live-count">0 donations in this browser</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+              <p class="text-xs font-semibold text-slate-500 uppercase">Fraud alerts</p>
+              <p class="text-3xl font-extrabold text-danger mt-1">3</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+              <p class="text-xs font-semibold text-slate-500 uppercase">Config status</p>
+              <p class="text-sm font-bold mt-2 text-success" id="cfg-status">Loaded</p>
+              <p class="text-xs text-slate-400 mt-1" id="cfg-summary">—</p>
+            </div>
+          </div>
+          <div class="bg-blue-50 border border-blue-100 rounded-2xl p-5 text-sm text-slate-700">
+            <p class="font-semibold text-primary mb-1"><i class="fas fa-info-circle mr-1"></i> Configuration hub</p>
+            <p>Platform limits, payment methods, Zakat rates, notifications, blockchain addresses, and feature flags are managed from the left sidebar under <strong>Configuration</strong>. Changes apply on the public site after save + refresh.</p>
+          </div>
+        </section>
+
+        <!-- PIPELINE (compact) -->
+        <section id="panel-pipeline" class="panel">
+          <div class="grid md:grid-cols-4 gap-3">
+            <div class="bg-slate-50 rounded-2xl p-3 border"><p class="text-[11px] font-bold text-slate-500 uppercase mb-2">AI screened</p><div class="bg-white p-3 rounded-xl text-sm border">Medical · Risk 22</div></div>
+            <div class="bg-slate-50 rounded-2xl p-3 border"><p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Officer review</p><div class="bg-white p-3 rounded-xl text-sm border">Education · Docs pending</div></div>
+            <div class="bg-slate-50 rounded-2xl p-3 border"><p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Live</p><div class="bg-white p-3 rounded-xl text-sm border border-emerald-100">Cancer case · Approved</div></div>
+            <div class="bg-slate-50 rounded-2xl p-3 border"><p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Proof</p><div class="bg-white p-3 rounded-xl text-sm border">Mayo · Awaiting receipt</div></div>
+          </div>
+        </section>
+
+        <section id="panel-fraud" class="panel">
+          <div class="bg-white rounded-2xl border border-red-100 p-4 space-y-3 text-sm">
+            <div class="flex justify-between gap-3"><div><p class="font-semibold">Possible duplicate CNIC</p><p class="text-xs text-slate-500">Case #DC-8842 · Risk 91</p></div><button class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-danger">Investigate</button></div>
+            <div class="flex justify-between gap-3 border-t pt-3"><div><p class="font-semibold">Document authenticity low</p><p class="text-xs text-slate-500">Case #DC-9011 · AI score 62</p></div><button class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100">Request docs</button></div>
+          </div>
+        </section>
+
+        <section id="panel-payments-log" class="panel">
+          <div class="bg-white rounded-2xl border overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Vendor</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Status</th></tr></thead>
+              <tbody class="divide-y">
+                <tr><td class="px-4 py-3">Mayo Hospital</td><td class="px-4 py-3 font-semibold">PKR 45,000</td><td class="px-4 py-3 text-success text-xs font-bold">Paid</td></tr>
+                <tr><td class="px-4 py-3">Beaconhouse</td><td class="px-4 py-3 font-semibold">PKR 18,500</td><td class="px-4 py-3 text-warning text-xs font-bold">Pending</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ========== CONFIG PANELS ========== -->
+        <section id="panel-cfg-general" class="panel">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 max-w-2xl space-y-4">
+            <h2 class="font-bold text-lg">General</h2>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Platform name</span>
+              <input id="g-name" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Tagline</span>
+              <input id="g-tagline" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Support email</span>
+                <input id="g-email" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+              <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Support phone</span>
+                <input id="g-phone" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+            </div>
+            <label class="flex items-center gap-3 text-sm cursor-pointer">
+              <input type="checkbox" id="g-maintenance" class="rounded text-primary" />
+              Maintenance mode (hide donate CTAs)
+            </label>
+          </div>
+        </section>
+
+        <section id="panel-cfg-donations" class="panel">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 max-w-2xl space-y-4">
+            <h2 class="font-bold text-lg">Donation rules</h2>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Min amount (PKR)</span>
+                <input type="number" id="d-min" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+              <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Max amount (PKR)</span>
+                <input type="number" id="d-max" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+            </div>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Quick amounts (comma-separated)</span>
+              <input id="d-quick" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="1000, 2500, 5000, 10000" /></label>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Platform fee %</span>
+              <input type="number" id="d-fee" step="0.1" min="0" max="10" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+            <label class="flex items-center gap-3 text-sm"><input type="checkbox" id="d-anon" class="rounded text-primary" /> Allow anonymous donations</label>
+            <label class="flex items-center gap-3 text-sm"><input type="checkbox" id="d-match" class="rounded text-primary" /> Auto-match to cases</label>
+          </div>
+        </section>
+
+        <section id="panel-cfg-payments" class="panel">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 max-w-2xl space-y-3">
+            <h2 class="font-bold text-lg mb-2">Payment methods</h2>
+            <p class="text-xs text-slate-500 mb-4">Disabled methods are hidden on the donate modal.</p>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>JazzCash</span><input type="checkbox" id="p-jazz" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>EasyPaisa</span><input type="checkbox" id="p-easy" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Raast</span><input type="checkbox" id="p-raast" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Card (Stripe-style)</span><input type="checkbox" id="p-card" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Bank transfer</span><input type="checkbox" id="p-bank" class="rounded text-primary" /></label>
+          </div>
+        </section>
+
+        <section id="panel-cfg-categories" class="panel">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 max-w-2xl space-y-3">
+            <h2 class="font-bold text-lg mb-2">Case categories</h2>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Medical</span><input type="checkbox" id="c-medical" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Education</span><input type="checkbox" id="c-education" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Food</span><input type="checkbox" id="c-food" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Utility</span><input type="checkbox" id="c-utility" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Emergency</span><input type="checkbox" id="c-emergency" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Housing</span><input type="checkbox" id="c-housing" class="rounded text-primary" /></label>
+          </div>
+        </section>
+
+        <section id="panel-cfg-zakat" class="panel">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 max-w-2xl space-y-4">
+            <h2 class="font-bold text-lg">Zakat calculator</h2>
+            <label class="flex items-center gap-3 text-sm"><input type="checkbox" id="z-enabled" class="rounded text-primary" /> Calculator enabled on public site</label>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Rate %</span>
+                <input type="number" id="z-rate" step="0.1" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+              <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Nisab (gold tola)</span>
+                <input type="number" id="z-nisab" step="0.1" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+              <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Gold price / tola</span>
+                <input type="number" id="z-gold" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+              <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Silver price / tola</span>
+                <input type="number" id="z-silver" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+            </div>
+          </div>
+        </section>
+
+        <section id="panel-cfg-notify" class="panel">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 max-w-2xl space-y-3">
+            <h2 class="font-bold text-lg mb-2">Notifications</h2>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Push (FCM)</span><input type="checkbox" id="n-push" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Email</span><input type="checkbox" id="n-email" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>SMS</span><input type="checkbox" id="n-sms" class="rounded text-primary" /></label>
+            <p class="text-xs font-semibold text-slate-500 uppercase pt-2">Event triggers</p>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Payment success</span><input type="checkbox" id="n-pay" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Proof ready</span><input type="checkbox" id="n-proof" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Case approved</span><input type="checkbox" id="n-case" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Fraud alert (admin)</span><input type="checkbox" id="n-fraud" class="rounded text-primary" /></label>
+          </div>
+        </section>
+
+        <section id="panel-cfg-chain" class="panel">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 max-w-2xl space-y-4">
+            <h2 class="font-bold text-lg">Blockchain & ledger</h2>
+            <label class="flex items-center gap-3 text-sm"><input type="checkbox" id="b-ledger" class="rounded text-primary" /> Hash-chain ledger enabled</label>
+            <label class="flex items-center gap-3 text-sm"><input type="checkbox" id="b-merkle" class="rounded text-primary" /> Merkle batch proofs enabled</label>
+            <label class="flex items-center gap-3 text-sm"><input type="checkbox" id="b-sim" class="rounded text-primary" /> Simulate on-chain when contract not set</label>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Contract address</span>
+              <input id="b-address" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm font-mono text-xs" /></label>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Chain ID</span>
+                <input type="number" id="b-chainId" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+              <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Chain name</span>
+                <input id="b-chainName" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+            </div>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">RPC URL</span>
+              <input id="b-rpc" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm font-mono text-xs" /></label>
+          </div>
+        </section>
+
+        <section id="panel-cfg-features" class="panel">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 max-w-2xl space-y-3">
+            <h2 class="font-bold text-lg mb-2">Feature flags</h2>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Donor dashboard</span><input type="checkbox" id="f-donor" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Explorer</span><input type="checkbox" id="f-explorer" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>PWA / service worker</span><input type="checkbox" id="f-pwa" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Show impact stats on home</span><input type="checkbox" id="f-stats" class="rounded text-primary" /></label>
+            <label class="flex items-center justify-between p-3 rounded-xl border"><span>Require login to donate</span><input type="checkbox" id="f-login" class="rounded text-primary" /></label>
+          </div>
+        </section>
+
+        <section id="panel-cfg-seo" class="panel">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 max-w-2xl space-y-4">
+            <h2 class="font-bold text-lg">SEO & branding</h2>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Site title</span>
+              <input id="s-title" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Meta description</span>
+              <textarea id="s-desc" rows="3" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm"></textarea></label>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Canonical URL</span>
+              <input id="s-canonical" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-2xl text-sm font-medium hidden z-50"></div>
+
+  <script src="../js/config.js"></script>
+  <script>
+    const titles = {
+      overview: "Overview",
+      pipeline: "Case pipeline",
+      fraud: "Fraud alerts",
+      "payments-log": "Payments log",
+      "cfg-general": "General settings",
+      "cfg-donations": "Donation rules",
+      "cfg-payments": "Payment methods",
+      "cfg-categories": "Categories",
+      "cfg-zakat": "Zakat",
+      "cfg-notify": "Notifications",
+      "cfg-chain": "Blockchain",
+      "cfg-features": "Feature flags",
+      "cfg-seo": "SEO & branding",
+    };
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.remove("hidden");
+      setTimeout(() => t.classList.add("hidden"), 2500);
+    }
+
+    function switchPanel(id) {
+      document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+      document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
+      const panel = document.getElementById("panel-" + id);
+      if (panel) panel.classList.add("active");
+      const btn = document.querySelector('[data-panel="' + id + '"]');
+      if (btn) btn.classList.add("active");
+      document.getElementById("panel-title").textContent = titles[id] || id;
+    }
+
+    document.getElementById("side-nav").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-panel]");
+      if (btn) switchPanel(btn.dataset.panel);
+    });
+
+    function fillForm(cfg) {
+      document.getElementById("sidebar-brand").textContent = cfg.general.platformName;
+      document.getElementById("g-name").value = cfg.general.platformName;
+      document.getElementById("g-tagline").value = cfg.general.tagline;
+      document.getElementById("g-email").value = cfg.general.supportEmail;
+      document.getElementById("g-phone").value = cfg.general.supportPhone;
+      document.getElementById("g-maintenance").checked = !!cfg.general.maintenanceMode;
+
+      document.getElementById("d-min").value = cfg.donations.minAmount;
+      document.getElementById("d-max").value = cfg.donations.maxAmount;
+      document.getElementById("d-quick").value = (cfg.donations.quickAmounts || []).join(", ");
+      document.getElementById("d-fee").value = cfg.donations.platformFeePercent;
+      document.getElementById("d-anon").checked = !!cfg.donations.allowAnonymous;
+      document.getElementById("d-match").checked = !!cfg.donations.autoMatchEnabled;
+
+      document.getElementById("p-jazz").checked = !!cfg.payments.jazzcash;
+      document.getElementById("p-easy").checked = !!cfg.payments.easypaisa;
+      document.getElementById("p-raast").checked = !!cfg.payments.raast;
+      document.getElementById("p-card").checked = !!cfg.payments.card;
+      document.getElementById("p-bank").checked = !!cfg.payments.bankTransfer;
+
+      document.getElementById("c-medical").checked = !!cfg.categories.medical;
+      document.getElementById("c-education").checked = !!cfg.categories.education;
+      document.getElementById("c-food").checked = !!cfg.categories.food;
+      document.getElementById("c-utility").checked = !!cfg.categories.utility;
+      document.getElementById("c-emergency").checked = !!cfg.categories.emergency;
+      document.getElementById("c-housing").checked = !!cfg.categories.housing;
+
+      document.getElementById("z-enabled").checked = !!cfg.zakat.calculatorEnabled;
+      document.getElementById("z-rate").value = cfg.zakat.ratePercent;
+      document.getElementById("z-nisab").value = cfg.zakat.nisabGoldTola;
+      document.getElementById("z-gold").value = cfg.zakat.goldPricePerTola;
+      document.getElementById("z-silver").value = cfg.zakat.silverPricePerTola;
+
+      document.getElementById("n-push").checked = !!cfg.notifications.pushEnabled;
+      document.getElementById("n-email").checked = !!cfg.notifications.emailEnabled;
+      document.getElementById("n-sms").checked = !!cfg.notifications.smsEnabled;
+      document.getElementById("n-pay").checked = !!cfg.notifications.paymentSuccess;
+      document.getElementById("n-proof").checked = !!cfg.notifications.proofReady;
+      document.getElementById("n-case").checked = !!cfg.notifications.caseApproved;
+      document.getElementById("n-fraud").checked = !!cfg.notifications.fraudAlert;
+
+      document.getElementById("b-ledger").checked = !!cfg.blockchain.ledgerEnabled;
+      document.getElementById("b-merkle").checked = !!cfg.blockchain.merkleEnabled;
+      document.getElementById("b-sim").checked = !!cfg.blockchain.autoAnchorSimulated;
+      document.getElementById("b-address").value = cfg.blockchain.contractAddress || "";
+      document.getElementById("b-chainId").value = cfg.blockchain.chainId;
+      document.getElementById("b-chainName").value = cfg.blockchain.chainName;
+      document.getElementById("b-rpc").value = cfg.blockchain.rpcUrl;
+
+      document.getElementById("f-donor").checked = !!cfg.features.donorDashboard;
+      document.getElementById("f-explorer").checked = !!cfg.features.explorer;
+      document.getElementById("f-pwa").checked = !!cfg.features.pwa;
+      document.getElementById("f-stats").checked = !!cfg.features.showImpactStats;
+      document.getElementById("f-login").checked = !!cfg.features.requireLoginToDonate;
+
+      document.getElementById("s-title").value = cfg.seo.siteTitle;
+      document.getElementById("s-desc").value = cfg.seo.metaDescription;
+      document.getElementById("s-canonical").value = cfg.seo.canonicalUrl;
+
+      const payOn = Object.values(cfg.payments).filter(Boolean).length;
+      document.getElementById("cfg-summary").textContent =
+        payOn + " payment methods · fee " + cfg.donations.platformFeePercent + "%";
+    }
+
+    function readForm() {
+      const quick = (document.getElementById("d-quick").value || "")
+        .split(",")
+        .map((s) => Number(s.trim()))
+        .filter((n) => n > 0);
+      return {
+        general: {
+          platformName: document.getElementById("g-name").value.trim() || "DonationChain",
+          tagline: document.getElementById("g-tagline").value.trim(),
+          supportEmail: document.getElementById("g-email").value.trim(),
+          supportPhone: document.getElementById("g-phone").value.trim(),
+          defaultCurrency: "PKR",
+          maintenanceMode: document.getElementById("g-maintenance").checked,
+        },
+        donations: {
+          minAmount: Number(document.getElementById("d-min").value) || 100,
+          maxAmount: Number(document.getElementById("d-max").value) || 500000,
+          quickAmounts: quick.length ? quick : [1000, 2500, 5000, 10000],
+          platformFeePercent: Number(document.getElementById("d-fee").value) || 0,
+          allowAnonymous: document.getElementById("d-anon").checked,
+          autoMatchEnabled: document.getElementById("d-match").checked,
+        },
+        payments: {
+          jazzcash: document.getElementById("p-jazz").checked,
+          easypaisa: document.getElementById("p-easy").checked,
+          raast: document.getElementById("p-raast").checked,
+          card: document.getElementById("p-card").checked,
+          bankTransfer: document.getElementById("p-bank").checked,
+        },
+        categories: {
+          medical: document.getElementById("c-medical").checked,
+          education: document.getElementById("c-education").checked,
+          food: document.getElementById("c-food").checked,
+          utility: document.getElementById("c-utility").checked,
+          emergency: document.getElementById("c-emergency").checked,
+          housing: document.getElementById("c-housing").checked,
+        },
+        zakat: {
+          calculatorEnabled: document.getElementById("z-enabled").checked,
+          ratePercent: Number(document.getElementById("z-rate").value) || 2.5,
+          nisabGoldTola: Number(document.getElementById("z-nisab").value) || 7.5,
+          goldPricePerTola: Number(document.getElementById("z-gold").value) || 240000,
+          silverPricePerTola: Number(document.getElementById("z-silver").value) || 2800,
+        },
+        notifications: {
+          pushEnabled: document.getElementById("n-push").checked,
+          emailEnabled: document.getElementById("n-email").checked,
+          smsEnabled: document.getElementById("n-sms").checked,
+          paymentSuccess: document.getElementById("n-pay").checked,
+          proofReady: document.getElementById("n-proof").checked,
+          caseApproved: document.getElementById("n-case").checked,
+          fraudAlert: document.getElementById("n-fraud").checked,
+        },
+        blockchain: {
+          ledgerEnabled: document.getElementById("b-ledger").checked,
+          merkleEnabled: document.getElementById("b-merkle").checked,
+          autoAnchorSimulated: document.getElementById("b-sim").checked,
+          contractAddress: document.getElementById("b-address").value.trim(),
+          chainId: Number(document.getElementById("b-chainId").value) || 80002,
+          chainName: document.getElementById("b-chainName").value.trim(),
+          rpcUrl: document.getElementById("b-rpc").value.trim(),
+        },
+        features: {
+          donorDashboard: document.getElementById("f-donor").checked,
+          adminPanel: true,
+          explorer: document.getElementById("f-explorer").checked,
+          pwa: document.getElementById("f-pwa").checked,
+          showImpactStats: document.getElementById("f-stats").checked,
+          requireLoginToDonate: document.getElementById("f-login").checked,
+        },
+        seo: {
+          siteTitle: document.getElementById("s-title").value.trim(),
+          metaDescription: document.getElementById("s-desc").value.trim(),
+          canonicalUrl: document.getElementById("s-canonical").value.trim(),
+        },
+      };
+    }
+
+    function saveAll() {
+      const cfg = readForm();
+      DCConfig.save(cfg);
+      fillForm(cfg);
+      showToast("Configuration saved");
+    }
+
+    function resetConfig() {
+      if (!confirm("Reset all settings to defaults?")) return;
+      const cfg = DCConfig.reset();
+      fillForm(cfg);
+      showToast("Defaults restored");
+    }
+
+    function exportConfig() {
+      const cfg = readForm();
+      const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "donationchain-config.json";
+      a.click();
+      showToast("Config exported");
+    }
+
+    function importConfig(ev) {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          const cfg = DCConfig.save(data);
+          fillForm(DCConfig.load());
+          showToast("Config imported & saved");
+        } catch (e) {
+          showToast("Invalid JSON file");
+        }
+        ev.target.value = "";
+      };
+      reader.readAsText(file);
+    }
+
+    function loadLiveStats() {
+      try {
+        const list = JSON.parse(localStorage.getItem("dc_donations") || "[]");
+        const total = list.reduce((s, d) => s + Number(d.amount || 0), 0);
+        const el = document.getElementById("live-volume");
+        const c = document.getElementById("live-count");
+        if (el) el.textContent = "PKR " + total.toLocaleString("en-PK");
+        if (c) c.textContent = list.length + " donations in this browser";
+      } catch (_) {}
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      fillForm(DCConfig.load());
+      loadLiveStats();
+    });
+  </script>
+</body>
+</html>

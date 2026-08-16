@@ -1,0 +1,132 @@
+# DonationChain — GitHub Pages deploy (static web)
+# Repo Settings → Pages → Source: GitHub Actions
+# Live URL: https://<user>.github.io/<repo>/
+
+name: Deploy Web to GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "donationchain/**"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you redeploying?"
+        required: false
+        default: "Manual deploy"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  WEB_DIR: donationchain
+
+jobs:
+  # ── Validate static site before publish ─────────────────────────
+  build:
+    name: Build & validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify required files
+        run: |
+          set -euo pipefail
+          echo "Checking ${{ env.WEB_DIR }}…"
+          required=(
+            index.html
+            js/app.js
+            js/config.js
+            js/i18n.js
+            js/ledger.js
+            js/merkle.js
+            admin/index.html
+            donor/dashboard.html
+            explorer.html
+            manifest.json
+            sw.js
+            css/rtl.css
+          )
+          missing=0
+          for f in "${required[@]}"; do
+            if [[ ! -f "${{ env.WEB_DIR }}/$f" ]]; then
+              echo "::error file=${{ env.WEB_DIR }}/$f::Missing $f"
+              missing=1
+            else
+              echo "  ✓ $f"
+            fi
+          done
+          if [[ "$missing" -ne 0 ]]; then
+            echo "Required files missing — aborting deploy"
+            exit 1
+          fi
+
+      - name: Syntax-check JavaScript
+        run: |
+          set -euo pipefail
+          for f in ${{ env.WEB_DIR }}/js/*.js; do
+            echo "node --check $f"
+            node --check "$f"
+          done
+
+      - name: Site summary
+        run: |
+          echo "## DonationChain web bundle" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Item | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Commit | \`${{ github.sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Actor | ${{ github.actor }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Trigger | ${{ github.event_name }} |" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${{ github.event.inputs.reason }}" ]; then
+            echo "| Reason | ${{ github.event.inputs.reason }} |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Files in \`${{ env.WEB_DIR }}\`:" >> "$GITHUB_STEP_SUMMARY"
+          find "${{ env.WEB_DIR }}" -type f | wc -l | xargs -I{} echo "- **{}** files" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prepare publish directory
+        run: |
+          # Copy only the web app; drop local notes if any
+          mkdir -p _site
+          cp -a ${{ env.WEB_DIR }}/. _site/
+          # Optional: ensure no server-only junk
+          rm -f _site/**/*.map 2>/dev/null || true
+          # Add a tiny deploy marker (visible in View Source)
+          echo "<!-- deployed $(date -u +%Y-%m-%dT%H:%M:%SZ) ${{ github.sha }} -->" >> _site/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  # ── Publish to GitHub Pages ─────────────────────────────────────
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Post URL to summary
+        run: |
+          echo "### 🚀 Deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Site published via GitHub Pages." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Enable Pages if needed: **Settings → Pages → Source: GitHub Actions**" >> "$GITHUB_STEP_SUMMARY"
