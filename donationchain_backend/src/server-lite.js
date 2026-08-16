@@ -10,6 +10,10 @@ let ledger;
 try { ledger = require('./services/ledger'); } catch (_) { ledger = null; }
 let merkle;
 try { merkle = require('./services/merkle'); } catch (_) { merkle = null; }
+let authSvc;
+try { authSvc = require('./services/auth'); } catch (_) { authSvc = null; }
+const loginAttempts = new Map();
+
 
 const PORT = process.env.PORT || 4000;
 const tokenStore = new Map();
@@ -35,7 +39,7 @@ function json(res, status, obj) {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   });
   res.end(body);
 }
@@ -127,6 +131,48 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       if (!body.leaf || !body.proof || !body.root) return json(res, 400, { error: 'leaf, proof, root required' });
       return json(res, 200, { valid: merkle.verifyProof(body.leaf, body.proof, body.root) });
+    }
+
+    
+    // ── Auth (JWT) ─────────────────────────────────────────────
+    if (authSvc && req.method === 'POST' && p === '/api/auth/login') {
+      const ip = req.socket.remoteAddress || 'unknown';
+      const now = Date.now();
+      let a = loginAttempts.get(ip) || { count: 0, reset: now + 15 * 60 * 1000 };
+      if (now > a.reset) a = { count: 0, reset: now + 15 * 60 * 1000 };
+      a.count += 1;
+      loginAttempts.set(ip, a);
+      if (a.count > 5) {
+        return json(res, 429, { error: 'Too many attempts', retryAfter: Math.ceil((a.reset - now) / 1000) });
+      }
+      const body = await readBody(req);
+      const result = authSvc.login(body.username || 'admin', body.password);
+      if (!result.ok) return json(res, result.status || 401, { error: result.error });
+      loginAttempts.delete(ip);
+      return json(res, 200, result);
+    }
+    if (authSvc && req.method === 'GET' && p === '/api/auth/me') {
+      const h = req.headers['authorization'] || '';
+      const token = h.toLowerCase().startsWith('bearer ') ? h.slice(7).trim() : null;
+      const v = authSvc.verifyJwt(token);
+      if (!v.ok) return json(res, 401, { error: 'Unauthorized', reason: v.error });
+      return json(res, 200, {
+        user: { id: v.payload.sub, username: v.payload.username, role: v.payload.role },
+        exp: v.payload.exp,
+      });
+    }
+    if (authSvc && req.method === 'POST' && p === '/api/auth/change-password') {
+      const h = req.headers['authorization'] || '';
+      const token = h.toLowerCase().startsWith('bearer ') ? h.slice(7).trim() : null;
+      const v = authSvc.verifyJwt(token);
+      if (!v.ok) return json(res, 401, { error: 'Unauthorized', reason: v.error });
+      const body = await readBody(req);
+      const result = authSvc.changePassword(v.payload.username, body.currentPassword, body.newPassword);
+      if (!result.ok) return json(res, result.status || 400, { error: result.error });
+      return json(res, 200, { success: true });
+    }
+    if (authSvc && req.method === 'POST' && p === '/api/auth/logout') {
+      return json(res, 200, { success: true });
     }
 
     return json(res, 404, { error: 'not found', path: p });

@@ -6,6 +6,8 @@ const morgan = require('morgan');
 const notificationsRouter = require('./routes/notifications');
 const ledgerRouter = require('./routes/ledger');
 const merkleRouter = require('./routes/merkle');
+const authRouter = require('./routes/auth');
+const { requireAuth } = require('./middleware/auth');
 const { initFirebase } = require('./services/fcm');
 
 const app = express();
@@ -27,6 +29,7 @@ app.get('/health', (_req, res) => {
 });
 
 // FCM + domain events
+app.use('/api/auth', authRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/ledger', ledgerRouter);
 app.use('/api/merkle', merkleRouter);
@@ -61,5 +64,7 @@ app.listen(PORT, () => {
   console.log(`  Multicast:     POST /api/notifications/multicast`);
   console.log(`  Topic:         POST /api/notifications/topic`);
   console.log(`  Events:        POST /api/notifications/events/*`);
+  console.log(`  Auth login:    POST /api/auth/login`);
+  console.log(`  Auth me:       GET  /api/auth/me`);
   console.log(`  Register device: POST /api/devices/register`);
 });

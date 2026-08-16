@@ -1,31 +1,32 @@
-# Deploy — GitHub Pages
+# CI/CD — Auto deploy
 
-## One-time setup
+Har **push to `main`** automatically:
 
-1. Push this repo to GitHub (`main` branch).
-2. **Settings → Pages → Source: GitHub Actions**
-3. **Settings → Actions → General** — allow Actions (read/write for Pages).
+1. **CI** — web + backend JS syntax, contracts present  
+2. **Deploy** — validates `donationchain/` → publishes site  
 
-## Automatic deploy
+## One-time Pages setup
 
-Any push to `main` that changes `donationchain/**` runs:
+https://github.com/mrbahramkhan/donationchain/settings/pages
 
-1. **Build & validate** — required files + `node --check` on all JS  
-2. **Deploy** — publishes `donationchain/` to GitHub Pages  
+**Recommended (branch method):**
 
-Manual run: **Actions → Deploy Web to GitHub Pages → Run workflow**
+- Source: **Deploy from a branch**
+- Branch: **`gh-pages`** / folder: **/ (root)**
 
-## URL
+**Optional:** Source **GitHub Actions** (official deploy action).
 
+## Live URL
+
+https://mrbahramkhan.github.io/donationchain/
+
+## Flow
+
+```text
+git push origin main
+    → CI (parallel checks)
+    → Build & validate
+    → Deploy Pages (Actions) + gh-pages branch
 ```
-https://<username>.github.io/<repo-name>/
-```
 
-If the site is at a subpath and assets 404, keep using **relative** paths (`js/app.js`, not `/js/app.js`) — already the case.
-
-## Workflows
-
-| File | Role |
-|------|------|
-| `.github/workflows/deploy-pages.yml` | Validate + deploy static web |
-| `.github/workflows/ci.yml` | PR/push syntax checks (web, backend, contracts) |
+Manual: **Actions → Deploy Web to GitHub Pages → Run workflow**

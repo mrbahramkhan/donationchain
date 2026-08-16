@@ -18,7 +18,15 @@
     .toggle:checked + .toggle-track .toggle-dot{transform:translateX(1.25rem)}
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased">
+<body class="bg-slate-100 text-slate-800 antialiased" style="visibility:hidden">
+  <script src="../js/admin-auth.js"></script>
+  <script>
+    if (!AdminAuth.isAuthenticated()) {
+      location.replace("login.html?next=" + encodeURIComponent(location.pathname.split("/").pop() || "index.html"));
+    } else {
+      document.body.style.visibility = "visible";
+    }
+  </script>
   <div class="flex min-h-screen">
     <!-- SIDEBAR -->
     <aside class="w-64 bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col">
@@ -44,6 +52,7 @@
         <button data-panel="cfg-chain" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-link w-4"></i> Blockchain</button>
         <button data-panel="cfg-features" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-toggle-on w-4"></i> Feature flags</button>
         <button data-panel="cfg-seo" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-search w-4"></i> SEO & branding</button>
+        <button data-panel="cfg-security" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-key w-4"></i> Security</button>
         <a href="../explorer.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 mt-4"><i class="fas fa-compass w-4"></i> Explorer</a>
         <a href="../index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800"><i class="fas fa-arrow-left w-4"></i> Back to site</a>
       </nav>
@@ -62,6 +71,9 @@
             Import JSON<input type="file" accept="application/json" class="hidden" onchange="importConfig(event)" />
           </label>
           <button onclick="resetConfig()" class="text-sm font-medium text-slate-500 px-3 py-2 rounded-xl hover:bg-slate-100">Reset</button>
+          <button onclick="adminLogout()" class="text-sm font-semibold text-red-600 border border-red-100 px-3 py-2 rounded-xl hover:bg-red-50" title="Sign out">
+            <i class="fas fa-right-from-bracket mr-1"></i> Logout
+          </button>
         </div>
       </header>
 
@@ -259,14 +271,48 @@
               <input id="s-canonical" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" /></label>
           </div>
         </section>
+        <section id="panel-cfg-security" class="panel">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 max-w-2xl space-y-4">
+            <h2 class="font-bold text-lg">Security</h2>
+            <p class="text-xs text-slate-500">Client-side session for this demo. Production should use server auth (JWT/OAuth).</p>
+            <div class="bg-slate-50 rounded-xl p-4 text-sm space-y-1">
+              <p><span class="text-slate-500">Session:</span> <span id="sec-session">—</span></p>
+              <p><span class="text-slate-500">Expires:</span> <span id="sec-exp">—</span></p>
+            </div>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Current password (JWT mode)</span>
+              <input type="password" id="sec-cur-pw" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" autocomplete="current-password" /></label>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">New password</span>
+              <input type="password" id="sec-new-pw" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" minlength="8" placeholder="Min 8 characters" /></label>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">Confirm password</span>
+              <input type="password" id="sec-new-pw2" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" minlength="8" /></label>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" onclick="changeAdminPassword()" class="bg-primary text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-blue-700">Update password</button>
+              <button type="button" onclick="resetAdminPassword()" class="text-sm font-medium border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50">Reset to default</button>
+            </div>
+            <label class="block text-sm"><span class="text-slate-500 text-xs font-semibold uppercase">API base URL</span>
+              <input type="url" id="sec-api-base" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm font-mono text-xs" placeholder="http://localhost:4000" /></label>
+            <button type="button" onclick="saveApiBase()" class="text-sm font-medium border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50">Save API URL</button>
+            <p class="text-[11px] text-slate-400">Default demo password: Admin@DC2026 · JWT via POST /api/auth/login</p>
+          </div>
+        </section>
+
       </div>
     </main>
   </div>
 
   <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-2xl text-sm font-medium hidden z-50"></div>
 
+  <script src="../js/admin-auth.js"></script>
   <script src="../js/config.js"></script>
   <script>
+    // Gate: must be logged in
+    if (!window.AdminAuth || !AdminAuth.requireAuth("login.html")) {
+      /* redirecting */
+    } else {
+      // activity extends session
+      document.addEventListener("click", function () { AdminAuth.extendSession(); }, { passive: true });
+    }
+
     const titles = {
       overview: "Overview",
       pipeline: "Case pipeline",
@@ -462,6 +508,52 @@
       showToast("Defaults restored");
     }
 
+    function adminLogout() {
+      if (window.AdminAuth) AdminAuth.logout();
+      location.href = "login.html";
+    }
+
+    function refreshSecurityInfo() {
+      if (!window.AdminAuth) return;
+      const s = AdminAuth.getSession();
+      const el = document.getElementById("sec-session");
+      const ex = document.getElementById("sec-exp");
+      if (el) el.textContent = s ? ("Active (" + (s.mode || "local") + ")") : "None";
+      if (ex && s) ex.textContent = new Date(s.exp).toLocaleString();
+    }
+
+    async function changeAdminPassword() {
+      const a = document.getElementById("sec-new-pw").value;
+      const b = document.getElementById("sec-new-pw2").value;
+      const cur = (document.getElementById("sec-cur-pw") || {}).value || "";
+      if (a !== b) { showToast("Passwords do not match"); return; }
+      const sess = AdminAuth.getSession();
+      if (sess && sess.mode === "jwt") {
+        if (!cur) { showToast("Enter current password"); return; }
+        const r = await AdminAuth.changePasswordServer(cur, a);
+        if (!r.ok) { showToast(r.error || "Failed"); return; }
+      } else {
+        const r = await AdminAuth.setPassword(a);
+        if (!r.ok) { showToast(r.error || "Failed"); return; }
+      }
+      document.getElementById("sec-new-pw").value = "";
+      document.getElementById("sec-new-pw2").value = "";
+      if (document.getElementById("sec-cur-pw")) document.getElementById("sec-cur-pw").value = "";
+      showToast("Password updated");
+    }
+
+        function saveApiBase() {
+      const u = document.getElementById("sec-api-base").value.trim();
+      AdminAuth.setApiBase(u || "http://localhost:4000");
+      showToast("API base saved");
+    }
+
+    function resetAdminPassword() {
+      if (!confirm("Reset admin password to default (Admin@DC2026)?")) return;
+      AdminAuth.resetPasswordToDefault();
+      showToast("Password reset to default");
+    }
+
     function exportConfig() {
       const cfg = readForm();
       const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: "application/json" });
@@ -504,6 +596,9 @@
     document.addEventListener("DOMContentLoaded", () => {
       fillForm(DCConfig.load());
       loadLiveStats();
+      refreshSecurityInfo();
+      const apiEl = document.getElementById("sec-api-base");
+      if (apiEl && window.AdminAuth) apiEl.value = AdminAuth.apiBase();
     });
   </script>
 </body>

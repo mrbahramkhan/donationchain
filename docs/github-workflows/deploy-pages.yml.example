@@ -1,25 +1,18 @@
-# DonationChain — GitHub Pages deploy
-# Method A: official actions/deploy-pages (needs Settings → Pages → Source: GitHub Actions)
-# Method B: fallback pushes to gh-pages branch (needs Settings → Pages → Branch: gh-pages / root)
-#
-# If you see "Failed to create deployment (status: 404)", use Method B settings below.
+# DonationChain — auto-deploy on every push to main
+# Pages: Settings → Source = "GitHub Actions" OR branch "gh-pages" / root
 
 name: Deploy Web to GitHub Pages
 
 on:
   push:
     branches: [main, master]
-    paths:
-      - "donationchain/**"
-      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
     inputs:
       reason:
-        description: "Why are you redeploying?"
+        description: "Manual deploy reason"
         required: false
         default: "Manual deploy"
 
-# contents:write needed for gh-pages branch push fallback
 permissions:
   contents: write
   pages: write
@@ -37,25 +30,24 @@ jobs:
     name: Build & validate
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (sparse)
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-          sparse-checkout: |
-            donationchain
-          sparse-checkout-cone-mode: true
 
       - name: Verify required files
         run: |
           set -euo pipefail
           required=(
             index.html js/app.js js/config.js js/i18n.js js/ledger.js js/merkle.js
-            admin/index.html donor/dashboard.html explorer.html
+            admin/index.html admin/login.html
+            donor/dashboard.html explorer.html
             manifest.json sw.js css/rtl.css
+            js/admin-auth.js
           )
           for f in "${required[@]}"; do
             if [[ ! -f "${{ env.WEB_DIR }}/$f" ]]; then
-              echo "::error::Missing $f"
+              echo "::error::Missing ${{ env.WEB_DIR }}/$f"
               exit 1
             fi
             echo "  ✓ $f"
@@ -68,34 +60,47 @@ jobs:
 
       - name: Syntax-check JavaScript
         run: |
+          set -euo pipefail
           for f in ${{ env.WEB_DIR }}/js/*.js; do
             node --check "$f"
+            echo "OK $f"
           done
 
       - name: Prepare _site
         run: |
           mkdir -p _site
           cp -a ${{ env.WEB_DIR }}/. _site/
+          find _site -name '*.map' -delete 2>/dev/null || true
           echo "<!-- deployed $(date -u +%Y-%m-%dT%H:%M:%SZ) ${{ github.sha }} -->" >> _site/index.html
 
-      - name: Upload artifact (for official Pages action)
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
-      - name: Upload site tarball (for branch deploy)
+      - name: Upload site for branch publish
         uses: actions/upload-artifact@v4
         with:
           name: site-static
           path: _site
-          retention-days: 1
+          retention-days: 2
 
-  # Official GitHub Pages deployment (requires Pages source = GitHub Actions)
+      - name: Summary
+        run: |
+          {
+            echo "## Auto-deploy build"
+            echo "| Item | Value |"
+            echo "|------|-------|"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| Branch | \`${{ github.ref_name }}\` |"
+            echo "| Actor | ${{ github.actor }} |"
+            find "${{ env.WEB_DIR }}" -type f | wc -l | xargs -I{} echo "| Files | {} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   deploy-actions:
-    name: Deploy (GitHub Actions source)
+    name: Deploy (Pages Actions)
     needs: build
     runs-on: ubuntu-latest
-    # Continue workflow even if this fails (404 when Pages not configured)
     continue-on-error: true
     environment:
       name: github-pages
@@ -105,7 +110,6 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-  # Reliable fallback: publish folder to gh-pages branch
   deploy-branch:
     name: Deploy (gh-pages branch)
     needs: build
@@ -127,15 +131,13 @@ jobs:
           user_name: github-actions[bot]
           user_email: github-actions[bot]@users.noreply.github.com
 
-      - name: Summary
+      - name: How to enable Pages
         run: |
           {
-            echo "### Pages deploy"
+            echo "### Live site"
+            echo "https://mrbahramkhan.github.io/donationchain/"
             echo ""
-            echo "1. Open **Settings → Pages**"
-            echo "2. Source: **Deploy from a branch**"
-            echo "3. Branch: **gh-pages** / folder: **/ (root)**"
-            echo "4. Save — site: https://mrbahramkhan.github.io/donationchain/"
-            echo ""
-            echo "Optional: Source **GitHub Actions** if you prefer the official deploy action."
+            echo "**Settings → Pages**"
+            echo "- Preferred: Source **Deploy from a branch** → **gh-pages** / **/(root)**"
+            echo "- Or: Source **GitHub Actions**"
           } >> "$GITHUB_STEP_SUMMARY"

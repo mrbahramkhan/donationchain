@@ -78,3 +78,19 @@ node scripts/test-fcm.js <YOUR_FCM_TOKEN>
 - Protect routes with API key or JWT
 - Use Firebase service account with minimal IAM
 - Never commit `serviceAccountKey.json`
+
+
+## JWT Admin Auth
+
+```bash
+# Login
+curl -s -X POST http://localhost:4000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"Admin@DC2026"}'
+
+# Me
+curl -s http://localhost:4000/api/auth/me -H "Authorization: Bearer <token>"
+```
+
+Env: `JWT_SECRET`, `JWT_TTL_SEC`, `ADMIN_USERNAME`, `ADMIN_PASSWORD` (first boot only).
+Users file: `data/admin-users.json` (scrypt hashes).
