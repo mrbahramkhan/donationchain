@@ -1,4 +1,5 @@
-# DonationChain — continuous checks (no deploy)
+# DonationChain — CI with dependency caching
+# Caches npm for backend / contracts when package-lock exists
 
 name: CI
 
@@ -13,38 +14,144 @@ on:
       - "donationchain_contracts/**"
       - ".github/workflows/ci.yml"
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   web:
     name: Web JS check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (sparse)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            donationchain/js
+          sparse-checkout-cone-mode: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Node syntax
         run: |
+          set -euo pipefail
           for f in donationchain/js/*.js; do
             node --check "$f"
+            echo "OK $f"
           done
 
   backend:
-    name: Backend syntax
+    name: Backend check
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: donationchain_backend
     steps:
-      - uses: actions/checkout@v4
-      - name: Node syntax (no install required)
+      - name: Checkout (sparse)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            donationchain_backend
+          sparse-checkout-cone-mode: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          # Caches ~/.npm using package-lock or package.json hash
+          cache: npm
+          cache-dependency-path: donationchain_backend/package-lock.json
+
+      # If lockfile missing, still cache global npm via actions/cache
+      - name: Cache npm (fallback without lockfile)
+        if: hashFiles('donationchain_backend/package-lock.json') == ''
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            donationchain_backend/node_modules
+          key: npm-backend-${{ runner.os }}-${{ hashFiles('donationchain_backend/package.json') }}
+          restore-keys: |
+            npm-backend-${{ runner.os }}-
+
+      - name: Install deps (optional)
         run: |
-          for f in donationchain_backend/src/**/*.js donationchain_backend/src/*.js; do
-            [ -f "$f" ] || continue
-            echo "check $f"
+          if [ -f package-lock.json ]; then
+            npm ci --ignore-scripts
+          elif [ -f package.json ]; then
+            npm install --ignore-scripts --no-audit --no-fund
+          else
+            echo "No package.json — syntax-only"
+          fi
+
+      - name: Node syntax
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' f; do
             node --check "$f"
-          done
+            echo "OK $f"
+          done < <(find src -name '*.js' -print0 2>/dev/null)
 
   contracts:
-    name: Solidity present
+    name: Contracts check
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: donationchain_contracts
     steps:
-      - uses: actions/checkout@v4
-      - name: Contract file exists
+      - name: Checkout (sparse)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            donationchain_contracts
+          sparse-checkout-cone-mode: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: donationchain_contracts/package-lock.json
+
+      - name: Cache npm (fallback without lockfile)
+        if: hashFiles('donationchain_contracts/package-lock.json') == ''
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            donationchain_contracts/node_modules
+            donationchain_contracts/cache
+            donationchain_contracts/artifacts
+          key: npm-contracts-${{ runner.os }}-${{ hashFiles('donationchain_contracts/package.json') }}
+          restore-keys: |
+            npm-contracts-${{ runner.os }}-
+
+      - name: Install deps (optional)
         run: |
-          test -f donationchain_contracts/contracts/DonationRegistry.sol
-          test -f donationchain_contracts/abi/DonationRegistry.json
+          if [ -f package-lock.json ]; then
+            npm ci --ignore-scripts
+          elif [ -f package.json ]; then
+            npm install --ignore-scripts --no-audit --no-fund
+          else
+            echo "No package.json — file check only"
+          fi
+
+      - name: Contract files exist
+        run: |
+          test -f contracts/DonationRegistry.sol
+          test -f abi/DonationRegistry.json
           echo "DonationRegistry.sol OK"
+
+      - name: Hardhat compile (if available)
+        run: |
+          if [ -f node_modules/.bin/hardhat ] || [ -f node_modules/hardhat/package.json ]; then
+            npx hardhat compile
+          else
+            echo "Hardhat not installed — skip compile"
+          fi

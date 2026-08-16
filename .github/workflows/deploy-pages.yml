@@ -1,6 +1,6 @@
 # DonationChain — GitHub Pages deploy (static web)
-# Repo Settings → Pages → Source: GitHub Actions
-# Live URL: https://<user>.github.io/<repo>/
+# Caching: sparse checkout + shallow clone (no npm for static site)
+# Live: https://<user>.github.io/<repo>/
 
 name: Deploy Web to GitHub Pages
 
@@ -30,13 +30,18 @@ env:
   WEB_DIR: donationchain
 
 jobs:
-  # ── Validate static site before publish ─────────────────────────
   build:
     name: Build & validate
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      # Shallow + sparse: only fetch web app tree (faster, less bandwidth)
+      - name: Checkout (sparse)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            donationchain
+          sparse-checkout-cone-mode: true
 
       - name: Verify required files
         run: |
@@ -70,6 +75,11 @@ jobs:
             exit 1
           fi
 
+      - name: Setup Node (for syntax check only)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Syntax-check JavaScript
         run: |
           set -euo pipefail
@@ -80,29 +90,29 @@ jobs:
 
       - name: Site summary
         run: |
-          echo "## DonationChain web bundle" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Item | Value |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Branch | \`${{ github.ref_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Commit | \`${{ github.sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Actor | ${{ github.actor }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Trigger | ${{ github.event_name }} |" >> "$GITHUB_STEP_SUMMARY"
-          if [ -n "${{ github.event.inputs.reason }}" ]; then
-            echo "| Reason | ${{ github.event.inputs.reason }} |" >> "$GITHUB_STEP_SUMMARY"
-          fi
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Files in \`${{ env.WEB_DIR }}\`:" >> "$GITHUB_STEP_SUMMARY"
-          find "${{ env.WEB_DIR }}" -type f | wc -l | xargs -I{} echo "- **{}** files" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## DonationChain web bundle"
+            echo ""
+            echo "| Item | Value |"
+            echo "|------|-------|"
+            echo "| Branch | \`${{ github.ref_name }}\` |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| Actor | ${{ github.actor }} |"
+            echo "| Trigger | ${{ github.event_name }} |"
+            echo "| Checkout | sparse \`${{ env.WEB_DIR }}/\` + fetch-depth 1 |"
+            if [ -n "${{ github.event.inputs.reason }}" ]; then
+              echo "| Reason | ${{ github.event.inputs.reason }} |"
+            fi
+            echo ""
+            echo "Files:"
+            find "${{ env.WEB_DIR }}" -type f | wc -l | xargs -I{} echo "- **{}** files"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Prepare publish directory
         run: |
-          # Copy only the web app; drop local notes if any
           mkdir -p _site
           cp -a ${{ env.WEB_DIR }}/. _site/
-          # Optional: ensure no server-only junk
-          rm -f _site/**/*.map 2>/dev/null || true
-          # Add a tiny deploy marker (visible in View Source)
+          find _site -name '*.map' -delete 2>/dev/null || true
           echo "<!-- deployed $(date -u +%Y-%m-%dT%H:%M:%SZ) ${{ github.sha }} -->" >> _site/index.html
 
       - name: Upload Pages artifact
@@ -110,7 +120,6 @@ jobs:
         with:
           path: _site
 
-  # ── Publish to GitHub Pages ─────────────────────────────────────
   deploy:
     name: Deploy
     needs: build
@@ -125,8 +134,10 @@ jobs:
 
       - name: Post URL to summary
         run: |
-          echo "### 🚀 Deployed" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Site published via GitHub Pages." >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Enable Pages if needed: **Settings → Pages → Source: GitHub Actions**" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Deployed"
+            echo ""
+            echo "Site published via GitHub Pages."
+            echo ""
+            echo "Settings → Pages → Source: **GitHub Actions**"
+          } >> "$GITHUB_STEP_SUMMARY"
