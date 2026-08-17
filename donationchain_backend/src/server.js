@@ -7,6 +7,9 @@ const notificationsRouter = require('./routes/notifications');
 const ledgerRouter = require('./routes/ledger');
 const merkleRouter = require('./routes/merkle');
 const authRouter = require('./routes/auth');
+const smsRouter = require('./routes/sms');
+const casesRouter = require('./routes/cases');
+const zakatRouter = require('./routes/zakat');
 const { requireAuth } = require('./middleware/auth');
 const { initFirebase } = require('./services/fcm');
 
@@ -30,9 +33,12 @@ app.get('/health', (_req, res) => {
 
 // FCM + domain events
 app.use('/api/auth', authRouter);
+app.use('/api/sms', smsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/ledger', ledgerRouter);
 app.use('/api/merkle', merkleRouter);
+app.use('/api/cases', casesRouter);
+app.use('/api/zakat', zakatRouter);
 
 // Simple in-memory token registry (demo — replace with DB)
 const tokenStore = new Map(); // userId -> token
@@ -65,6 +71,11 @@ app.listen(PORT, () => {
   console.log(`  Topic:         POST /api/notifications/topic`);
   console.log(`  Events:        POST /api/notifications/events/*`);
   console.log(`  Auth login:    POST /api/auth/login`);
+  console.log(`  SMS send:      POST /api/sms/send`);
   console.log(`  Auth me:       GET  /api/auth/me`);
   console.log(`  Register device: POST /api/devices/register`);
+  console.log(`  Cases list:    GET  /api/cases`);
+  console.log(`  Seeker apply:  POST /api/cases/apply`);
+  console.log(`  Zakat config:  GET  /api/zakat/config`);
+  console.log(`  Zakat calc:    POST /api/zakat/calculate`);
 });

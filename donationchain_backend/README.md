@@ -94,3 +94,8 @@ curl -s http://localhost:4000/api/auth/me -H "Authorization: Bearer <token>"
 
 Env: `JWT_SECRET`, `JWT_TTL_SEC`, `ADMIN_USERNAME`, `ADMIN_PASSWORD` (first boot only).
 Users file: `data/admin-users.json` (scrypt hashes).
+
+
+## SMS (Twilio)
+
+See **[TWILIO_SMS_SETUP.md](./TWILIO_SMS_SETUP.md)** for full integration steps.

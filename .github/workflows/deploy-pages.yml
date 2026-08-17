@@ -41,6 +41,8 @@ jobs:
           required=(
             index.html js/app.js js/config.js js/i18n.js js/ledger.js js/merkle.js
             admin/index.html admin/login.html
+            apply.html
+            js/forms.js
             donor/dashboard.html explorer.html
             manifest.json sw.js css/rtl.css
             js/admin-auth.js

@@ -272,8 +272,21 @@ function processPayment() {
       console.warn("Ledger/contract anchor failed", e);
     }
 
+    // Tag Zakat distributions (opened via openDonate(true) → no selected case title from marketplace)
+    const isZakatFlow = !DC.selectedCase || /zakat/i.test(String(record.case || ""));
+    if (isZakatFlow) record.category = "zakat";
+
     donations.unshift(record);
     localStorage.setItem("dc_donations", JSON.stringify(donations));
+
+    // Hawl tracker: count Zakat payments toward remaining obligation
+    try {
+      if (isZakatFlow && window.DCZakat) {
+        DCZakat.recordPayment(amount, receiptId);
+      }
+    } catch (ze) {
+      console.warn("Zakat Hawl payment record failed", ze);
+    }
 
     if (DC.selectedCase) {
       const c = DC.cases.find(x => x.id === DC.selectedCase.id);
@@ -287,6 +300,20 @@ function processPayment() {
       btn.innerHTML = 'Pay Securely <i class="fas fa-lock ml-2 text-sm"></i>';
     }
     showReceipt(record);
+    if (window.DCSMS && record) {
+      try {
+        const donorPhone = (JSON.parse(localStorage.getItem("dc_donor_profiles") || "[]")[0] || {}).phone
+          || (localStorage.getItem("dc_user_phone") || "");
+        const casePhone = (record.beneficiaryPhone) || "";
+        DCSMS.notifyDonation({
+          donorPhone: donorPhone || undefined,
+          beneficiaryPhone: casePhone || undefined,
+          amount: record.amount,
+          receiptId: record.id,
+          caseTitle: record.case || record.caseTitle || "",
+        });
+      } catch (_) {}
+    }
   }, 1400);
 }
 
@@ -375,18 +402,57 @@ function calcZakat() {
   const silver = Number(document.getElementById("zakat-silver")?.value) || 0;
   const cash = Number(document.getElementById("zakat-cash")?.value) || 0;
   const business = Number(document.getElementById("zakat-business")?.value) || 0;
-  const zcfg = window.DCConfig ? DCConfig.load().zakat : { goldPricePerTola: 240000, silverPricePerTola: 2800, ratePercent: 2.5 };
-  const goldValue = gold * (zcfg.goldPricePerTola || 240000);
-  const silverValue = silver * (zcfg.silverPricePerTola || 2800);
-  const total = goldValue + silverValue + cash + business;
-  const rate = (zcfg.ratePercent || 2.5) / 100;
-  const zakat = Math.round(total * rate);
+  const hawlCheck = document.getElementById("zakat-hawl-declare");
+  const forceHawl = hawlCheck ? hawlCheck.checked : false;
+
+  let result;
+  if (window.DCZakat) {
+    result = DCZakat.calculate(
+      { goldTola: gold, silverTola: silver, cash, business, liabilities: 0 },
+      { forceHawlComplete: forceHawl }
+    );
+  } else {
+    // Fallback if zakat.js not loaded
+    const zcfg = window.DCConfig ? DCConfig.load().zakat : { goldPricePerTola: 240000, silverPricePerTola: 2800, ratePercent: 2.5, nisabGoldTola: 7.5 };
+    const total = gold * (zcfg.goldPricePerTola || 240000) + silver * (zcfg.silverPricePerTola || 2800) + cash + business;
+    const nisab = (zcfg.nisabGoldTola || 7.5) * (zcfg.goldPricePerTola || 240000);
+    const rate = (zcfg.ratePercent || 2.5) / 100;
+    const due = total >= nisab ? Math.round(total * rate) : 0;
+    result = {
+      netWealth: total,
+      nisab,
+      aboveNisab: total >= nisab,
+      zakatDue: due,
+      remaining: due,
+      alreadyPaid: 0,
+      hawl: { completed: true, status: "unknown", message: "Hawl module not loaded — showing 2.5% if above Nisab.", progressPercent: 0, daysRemaining: 0 },
+    };
+  }
+
   const el = document.getElementById("zakat-amount");
   const box = document.getElementById("zakat-result");
-  if (el) el.textContent = zakat.toLocaleString("en-PK");
-  if (box) box.classList.remove("hidden");
   const base = document.getElementById("zakat-base");
-  if (base) base.textContent = formatPKR(total);
+  const nisabEl = document.getElementById("zakat-nisab");
+  const hawlEl = document.getElementById("zakat-hawl-status");
+  const remainEl = document.getElementById("zakat-remaining");
+  const progressEl = document.getElementById("zakat-hawl-progress");
+
+  if (el) el.textContent = (result.zakatDue || 0).toLocaleString("en-PK");
+  if (base) base.textContent = typeof formatPKR === "function" ? formatPKR(result.netWealth) : ("PKR " + result.netWealth.toLocaleString("en-PK"));
+  if (nisabEl) nisabEl.textContent = typeof formatPKR === "function" ? formatPKR(result.nisab) : ("PKR " + result.nisab.toLocaleString("en-PK"));
+  if (remainEl) remainEl.textContent = (result.remaining || 0).toLocaleString("en-PK");
+
+  if (hawlEl) {
+    hawlEl.textContent = result.hawl.message || "";
+    hawlEl.className = "text-xs mt-2 " + (result.hawl.completed ? "text-emerald-300" : result.hawl.status === "below_nisab" ? "text-amber-300" : "text-cyan-300");
+  }
+  if (progressEl) {
+    const pct = result.hawl.progressPercent || 0;
+    progressEl.style.width = pct + "%";
+    progressEl.parentElement?.classList.toggle("hidden", result.hawl.status === "below_nisab");
+  }
+
+  if (box) box.classList.remove("hidden");
 }
 
 function showToast(msg) {
@@ -629,7 +695,19 @@ function applyAdminConfig() {
 
 function toggleMobileNav() {
   const m = document.getElementById("mobile-nav");
-  if (m) m.classList.toggle("hidden");
+  const btn = document.getElementById("mobile-menu-btn");
+  if (!m) return;
+  const open = m.classList.contains("hidden");
+  m.classList.toggle("hidden", !open);
+  if (open) {
+    m.removeAttribute("hidden");
+  } else {
+    m.setAttribute("hidden", "");
+  }
+  if (btn) {
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  }
 }
 
 function openCaseDetail(id) {

@@ -12,6 +12,8 @@ let merkle;
 try { merkle = require('./services/merkle'); } catch (_) { merkle = null; }
 let authSvc;
 try { authSvc = require('./services/auth'); } catch (_) { authSvc = null; }
+let smsSvc;
+try { smsSvc = require('./services/sms'); } catch (_) { smsSvc = null; }
 const loginAttempts = new Map();
 
 
@@ -173,6 +175,29 @@ const server = http.createServer(async (req, res) => {
     }
     if (authSvc && req.method === 'POST' && p === '/api/auth/logout') {
       return json(res, 200, { success: true });
+    }
+
+    
+    if (smsSvc && req.method === 'POST' && p === '/api/sms/notify-donation') {
+      const body = await readBody(req);
+      const results = await smsSvc.notifyDonation(body);
+      return json(res, 200, { success: true, results });
+    }
+    if (smsSvc && req.method === 'POST' && p === '/api/sms/notify-application') {
+      const body = await readBody(req);
+      const map = { received: 'application_received', approved: 'application_approved', rejected: 'application_rejected' };
+      const template = map[body.status] || 'application_received';
+      const result = await smsSvc.sendSms({ to: body.phone, template, params: { id: body.id } });
+      return json(res, 200, result);
+    }
+    if (smsSvc && req.method === 'POST' && p === '/api/sms/send') {
+      const body = await readBody(req);
+      // optional auth for lite: skip if no JWT tooling
+      const result = await smsSvc.sendSms(body);
+      return json(res, 200, result);
+    }
+    if (smsSvc && req.method === 'GET' && p === '/api/sms/log') {
+      return json(res, 200, { log: smsSvc.loadLog().slice(0, 100) });
     }
 
     return json(res, 404, { error: 'not found', path: p });

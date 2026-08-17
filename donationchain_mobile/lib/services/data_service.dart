@@ -90,10 +90,12 @@ class DataService {
     );
   }
 
-  static Future<void> setUser(String name, String phone) async {
+  /// role: donor | seeker | guest
+  static Future<void> setUser(String name, String phone, {String role = 'donor'}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('dc_user_name', name);
     await prefs.setString('dc_user_phone', phone);
+    await prefs.setString('dc_user_role', role);
   }
 
   static Future<Map<String, String?>> getUser() async {
@@ -101,6 +103,7 @@ class DataService {
     return {
       'name': prefs.getString('dc_user_name'),
       'phone': prefs.getString('dc_user_phone'),
+      'role': prefs.getString('dc_user_role') ?? 'donor',
     };
   }
 
@@ -108,5 +111,60 @@ class DataService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('dc_user_name');
     await prefs.remove('dc_user_phone');
+    await prefs.remove('dc_user_role');
+  }
+
+  /// Seeker applications (local)
+  static Future<List<Map<String, dynamic>>> getApplications() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('dc_applications');
+    if (raw == null) return [];
+    return List<Map<String, dynamic>>.from(jsonDecode(raw) as List);
+  }
+
+  static Future<Map<String, dynamic>> saveApplication(Map<String, dynamic> app) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = await getApplications();
+    final id = 'APP-${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase()}';
+    final record = {
+      ...app,
+      'id': id,
+      'status': 'pending_review',
+      'createdAt': DateTime.now().toIso8601String(),
+    };
+    list.insert(0, record);
+    await prefs.setString('dc_applications', jsonEncode(list));
+    return record;
+  }
+
+  /// Hawl / Zakat tracker (local)
+  static Future<Map<String, dynamic>> getHawlState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('dc_hawl');
+    if (raw == null) {
+      return {
+        'hawlStart': null,
+        'declaredComplete': false,
+        'payments': <Map<String, dynamic>>[],
+      };
+    }
+    return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+  }
+
+  static Future<void> saveHawlState(Map<String, dynamic> state) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('dc_hawl', jsonEncode(state));
+  }
+
+  static Future<void> recordZakatPayment(double amount, String receiptId) async {
+    final state = await getHawlState();
+    final payments = List<Map<String, dynamic>>.from(state['payments'] ?? []);
+    payments.add({
+      'amount': amount,
+      'receiptId': receiptId,
+      'at': DateTime.now().toIso8601String(),
+    });
+    state['payments'] = payments;
+    await saveHawlState(state);
   }
 }

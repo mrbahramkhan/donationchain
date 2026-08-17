@@ -20,6 +20,8 @@
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased" style="visibility:hidden">
   <script src="../js/admin-auth.js"></script>
+  <script src="../js/forms.js"></script>
+  <script src="../js/sms.js"></script>
   <script>
     if (!AdminAuth.isAuthenticated()) {
       location.replace("login.html?next=" + encodeURIComponent(location.pathname.split("/").pop() || "index.html"));
@@ -40,6 +42,9 @@
       <nav class="p-3 space-y-0.5 text-sm flex-1 overflow-y-auto" id="side-nav">
         <button data-panel="overview" class="nav-item active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-chart-pie w-4"></i> Overview</button>
         <button data-panel="pipeline" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-columns w-4"></i> Case pipeline</button>
+        <button data-panel="applications" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-inbox w-4"></i> Applications</button>
+        <button data-panel="donors-reg" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-users w-4"></i> Donor registry</button>
+        <button data-panel="sms-log" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-comment-sms w-4"></i> SMS log</button>
         <button data-panel="fraud" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-shield-halved w-4"></i> Fraud alerts</button>
         <button data-panel="payments-log" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-money-bill-wave w-4"></i> Payments log</button>
         <p class="text-[10px] uppercase tracking-wider text-slate-500 px-3 pt-4 pb-1">Configuration</p>
@@ -116,6 +121,29 @@
             <div class="bg-slate-50 rounded-2xl p-3 border"><p class="text-[11px] font-bold text-slate-500 uppercase mb-2">Proof</p><div class="bg-white p-3 rounded-xl text-sm border">Mayo · Awaiting receipt</div></div>
           </div>
         </section>
+        <section id="panel-applications" class="panel">
+          <div class="flex justify-between items-center mb-4">
+            <p class="text-sm text-slate-500">Zarooratmand submissions (this browser)</p>
+            <button onclick="loadApplications()" class="text-sm text-primary font-semibold">Refresh</button>
+          </div>
+          <div id="apps-list" class="space-y-3"></div>
+        </section>
+        <section id="panel-donors-reg" class="panel">
+          <div class="flex justify-between items-center mb-4">
+            <p class="text-sm text-slate-500">Registered donors</p>
+            <button onclick="loadDonorRegistry()" class="text-sm text-primary font-semibold">Refresh</button>
+          </div>
+          <div id="donors-list" class="space-y-3"></div>
+        </section>
+        <section id="panel-sms-log" class="panel">
+          <div class="flex justify-between mb-3">
+            <p class="text-sm text-slate-500">Local + server SMS alerts (mock by default)</p>
+            <button type="button" onclick="loadSmsLog()" class="text-sm text-primary font-semibold">Refresh</button>
+          </div>
+          <div id="sms-log-list" class="text-sm"></div>
+        </section>
+
+
 
         <section id="panel-fraud" class="panel">
           <div class="bg-white rounded-2xl border border-red-100 p-4 space-y-3 text-sm">
@@ -125,12 +153,26 @@
         </section>
 
         <section id="panel-payments-log" class="panel">
-          <div class="bg-white rounded-2xl border overflow-x-auto">
-            <table class="w-full text-sm text-left">
-              <thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Vendor</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Status</th></tr></thead>
-              <tbody class="divide-y">
-                <tr><td class="px-4 py-3">Mayo Hospital</td><td class="px-4 py-3 font-semibold">PKR 45,000</td><td class="px-4 py-3 text-success text-xs font-bold">Paid</td></tr>
-                <tr><td class="px-4 py-3">Beaconhouse</td><td class="px-4 py-3 font-semibold">PKR 18,500</td><td class="px-4 py-3 text-warning text-xs font-bold">Pending</td></tr>
+          <div class="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b text-left text-slate-500">
+                  <th class="px-3 py-2 font-medium">Vendor</th>
+                  <th class="px-3 py-2 font-medium">Amount</th>
+                  <th class="px-3 py-2 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr>
+                  <td class="px-3 py-2">Mayo Hospital</td>
+                  <td class="px-3 py-2">PKR 45,000</td>
+                  <td class="px-3 py-2 text-success">Paid</td>
+                </tr>
+                <tr>
+                  <td class="px-3 py-2">Beaconhouse</td>
+                  <td class="px-3 py-2">PKR 18,500</td>
+                  <td class="px-3 py-2 text-warning">Pending</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -303,6 +345,8 @@
   <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-2xl text-sm font-medium hidden z-50"></div>
 
   <script src="../js/admin-auth.js"></script>
+  <script src="../js/forms.js"></script>
+  <script src="../js/sms.js"></script>
   <script src="../js/config.js"></script>
   <script>
     // Gate: must be logged in
@@ -344,6 +388,9 @@
       const btn = document.querySelector('[data-panel="' + id + '"]');
       if (btn) btn.classList.add("active");
       document.getElementById("panel-title").textContent = titles[id] || id;
+      if (id === "applications") loadApplications();
+      if (id === "donors-reg") loadDonorRegistry();
+      if (id === "sms-log") loadSmsLog();
     }
 
     document.getElementById("side-nav").addEventListener("click", (e) => {
@@ -506,6 +553,111 @@
       const cfg = DCConfig.reset();
       fillForm(cfg);
       showToast("Defaults restored");
+    }
+
+    function loadApplications() {
+      const box = document.getElementById("apps-list");
+      if (!box || !window.DCForms) return;
+      const list = DCForms.listApplications();
+      if (!list.length) {
+        box.innerHTML = '<p class="text-slate-400 text-sm">No applications yet.</p>';
+        return;
+      }
+      const rows = list.map(a => {
+        const name = (a.applicant && a.applicant.fullName) || "";
+        const phone = (a.applicant && a.applicant.phone) || "";
+        const title = (a.case && a.case.title) || "";
+        const amt = Number((a.case && a.case.amountNeeded) || 0).toLocaleString();
+        const st = a.status || "";
+        return `<tr>
+          <td class="px-3 py-2 font-mono text-xs">${a.id || ""}</td>
+          <td class="px-3 py-2">${name}<div class="text-xs text-slate-400">${phone}</div></td>
+          <td class="px-3 py-2">${title}</td>
+          <td class="px-3 py-2 whitespace-nowrap">PKR ${amt}</td>
+          <td class="px-3 py-2 text-xs">${st}</td>
+          <td class="px-3 py-2 whitespace-nowrap">
+            <button type="button" onclick="reviewApplication('${a.id}','approved')" class="text-success text-xs font-semibold mr-2">OK</button>
+            <button type="button" onclick="reviewApplication('${a.id}','rejected')" class="text-danger text-xs font-semibold">No</button>
+          </td>
+        </tr>`;
+      }).join("");
+      box.innerHTML = `<div class="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b text-left text-slate-500">
+            <th class="px-3 py-2 font-medium">ID</th>
+            <th class="px-3 py-2 font-medium">Applicant</th>
+            <th class="px-3 py-2 font-medium">Case</th>
+            <th class="px-3 py-2 font-medium">Amount</th>
+            <th class="px-3 py-2 font-medium">Status</th>
+            <th class="px-3 py-2 font-medium">Action</th>
+          </tr></thead>
+          <tbody class="divide-y divide-slate-100">${rows}</tbody>
+        </table></div>`;
+    }
+
+    function loadDonorRegistry() {
+      const box = document.getElementById("donors-list");
+      if (!box || !window.DCForms) return;
+      const list = DCForms.listDonors();
+      if (!list.length) {
+        box.innerHTML = '<p class="text-slate-400 text-sm">No donor profiles.</p>';
+        return;
+      }
+      const rows = list.map(d => `<tr>
+          <td class="px-3 py-2">${d.fullName || ""}</td>
+          <td class="px-3 py-2">${d.phone || ""}</td>
+          <td class="px-3 py-2">${d.email || "—"}</td>
+          <td class="px-3 py-2">${d.city || "—"}</td>
+          <td class="px-3 py-2 text-xs">${(d.preferredCategories || []).join(", ") || "—"}</td>
+        </tr>`).join("");
+      box.innerHTML = `<div class="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b text-left text-slate-500">
+            <th class="px-3 py-2 font-medium">Name</th>
+            <th class="px-3 py-2 font-medium">Phone</th>
+            <th class="px-3 py-2 font-medium">Email</th>
+            <th class="px-3 py-2 font-medium">City</th>
+            <th class="px-3 py-2 font-medium">Causes</th>
+          </tr></thead>
+          <tbody class="divide-y divide-slate-100">${rows}</tbody>
+        </table></div>`;
+    }
+
+    function loadSmsLog() {
+      const box = document.getElementById("sms-log-list");
+      if (!box) return;
+      const local = (window.DCSMS && DCSMS.getLocalLog()) || [];
+      if (!local.length) {
+        box.innerHTML = '<p class="text-slate-400">No local SMS yet. Backend log: GET /api/sms/log</p>';
+        return;
+      }
+      const rows = local.map(e => `<tr>
+        <td class="px-3 py-2 text-xs">${(e.at||'').toString().slice(0,19)}</td>
+        <td class="px-3 py-2">${e.to||e.donorPhone||e.beneficiaryPhone||'—'}</td>
+        <td class="px-3 py-2 text-xs">${e.template||'—'}</td>
+        <td class="px-3 py-2 text-xs">${e.offline?'offline':(e.mock?'mock':'sent')}</td>
+      </tr>`).join("");
+      box.innerHTML = `<div class="bg-white rounded-xl border overflow-x-auto"><table class="w-full text-sm">
+        <thead><tr class="border-b text-left text-slate-500">
+          <th class="px-3 py-2 font-medium">Time</th>
+          <th class="px-3 py-2 font-medium">To</th>
+          <th class="px-3 py-2 font-medium">Template</th>
+          <th class="px-3 py-2 font-medium">Status</th>
+        </tr></thead><tbody class="divide-y">${rows}</tbody></table></div>`;
+    }
+
+    async function reviewApplication(id, status) {
+      if (!window.DCForms) return;
+      const list = DCForms.listApplications();
+      const app = list.find(x => x.id === id);
+      DCForms.updateApplicationStatus(id, status);
+      if (window.DCSMS && app && app.applicant && app.applicant.phone) {
+        try {
+          await DCSMS.notifyApplication({ phone: app.applicant.phone, id, status });
+          showToast("SMS alert queued (" + status + ")");
+        } catch (_) {}
+      }
+      loadApplications();
     }
 
     function adminLogout() {
