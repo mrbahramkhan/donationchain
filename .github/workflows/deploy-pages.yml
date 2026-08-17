@@ -1,17 +1,24 @@
-# DonationChain — auto-deploy on every push to main
-# Pages: Settings → Source = "GitHub Actions" OR branch "gh-pages" / root
+# Auto-deploy static web on push to main (only when donationchain/ changes)
+# Pages: Settings → Source = GitHub Actions (preferred) or branch gh-pages
 
 name: Deploy Web to GitHub Pages
 
 on:
   push:
     branches: [main, master]
+    paths:
+      - "donationchain/**"
+      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
     inputs:
       reason:
         description: "Manual deploy reason"
         required: false
         default: "Manual deploy"
+      force_gh_pages:
+        description: "Also publish gh-pages branch fallback"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -29,11 +36,15 @@ jobs:
   build:
     name: Build & validate
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          sparse-checkout: |
+            donationchain
+          sparse-checkout-cone-mode: true
 
       - name: Verify required files
         run: |
@@ -42,8 +53,8 @@ jobs:
             index.html js/app.js js/config.js js/i18n.js js/ledger.js js/merkle.js
             admin/index.html admin/login.html
             apply.html
-            js/forms.js
-            donor/dashboard.html explorer.html
+            js/forms.js js/zakat.js
+            donor/dashboard.html donor/register.html explorer.html
             manifest.json sw.js css/rtl.css
             js/admin-auth.js
           )
@@ -55,11 +66,6 @@ jobs:
             echo "  ✓ $f"
           done
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
       - name: Syntax-check JavaScript
         run: |
           set -euo pipefail
@@ -70,10 +76,13 @@ jobs:
 
       - name: Prepare _site
         run: |
+          set -euo pipefail
           mkdir -p _site
           cp -a ${{ env.WEB_DIR }}/. _site/
           find _site -name '*.map' -delete 2>/dev/null || true
+          find _site -type d -name node_modules -prune -exec rm -rf {} + 2>/dev/null || true
           echo "<!-- deployed $(date -u +%Y-%m-%dT%H:%M:%SZ) ${{ github.sha }} -->" >> _site/index.html
+          echo "Site files: $(find _site -type f | wc -l)"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -81,11 +90,13 @@ jobs:
           path: _site
 
       - name: Upload site for branch publish
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.force_gh_pages) }}
         uses: actions/upload-artifact@v4
         with:
           name: site-static
           path: _site
-          retention-days: 2
+          retention-days: 1
+          compression-level: 9
 
       - name: Summary
         run: |
@@ -95,15 +106,16 @@ jobs:
             echo "|------|-------|"
             echo "| Commit | \`${{ github.sha }}\` |"
             echo "| Branch | \`${{ github.ref_name }}\` |"
-            echo "| Actor | ${{ github.actor }} |"
-            find "${{ env.WEB_DIR }}" -type f | wc -l | xargs -I{} echo "| Files | {} |"
+            echo "| Actor | @${{ github.actor }} |"
+            echo "| Trigger | ${{ github.event_name }} |"
+            find "${{ env.WEB_DIR }}" -type f | wc -l | xargs -I{} echo "| Source files | {} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy-actions:
-    name: Deploy (Pages Actions)
+    name: Deploy (GitHub Pages)
     needs: build
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 5
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -111,11 +123,19 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: URL
+        run: |
+          echo "### Live (Actions Pages)" >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.deployment.outputs.page_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://mrbahramkhan.github.io/donationchain/" >> "$GITHUB_STEP_SUMMARY"
 
   deploy-branch:
-    name: Deploy (gh-pages branch)
+    name: Deploy (gh-pages fallback)
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Keep dual publish for Settings → branch gh-pages users
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.force_gh_pages) }}
     steps:
       - name: Download site
         uses: actions/download-artifact@v4
@@ -140,6 +160,6 @@ jobs:
             echo "https://mrbahramkhan.github.io/donationchain/"
             echo ""
             echo "**Settings → Pages**"
-            echo "- Preferred: Source **Deploy from a branch** → **gh-pages** / **/(root)**"
-            echo "- Or: Source **GitHub Actions**"
+            echo "- Preferred: Source **GitHub Actions**"
+            echo "- Fallback: Source **Deploy from a branch** → **gh-pages** / **/(root)**"
           } >> "$GITHUB_STEP_SUMMARY"

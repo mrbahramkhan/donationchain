@@ -1,5 +1,4 @@
-# Accessibility — Pa11y WCAG 2.1 AA (WCAG2AA) on public web pages
-# Runs on PR + main. Does not block deploy by default (continue-on-error optional).
+# Accessibility — Pa11y WCAG2AA (non-blocking warnings; report artifact)
 
 name: Accessibility
 
@@ -22,35 +21,55 @@ concurrency:
   group: a11y-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   pa11y:
     name: Pa11y WCAG2AA
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 12
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          sparse-checkout: |
+            donationchain
+            .pa11yci.json
+          sparse-checkout-cone-mode: true
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+
+      - name: Cache pa11y + Chromium deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/puppeteer
+          key: pa11y-${{ runner.os }}-node20-v1
+          restore-keys: |
+            pa11y-${{ runner.os }}-
 
       - name: Install pa11y-ci
-        run: npm install -g pa11y-ci@3 pa11y@8 --no-fund --no-audit
+        run: npm install -g pa11y-ci@3 pa11y@8 serve@14 --no-fund --no-audit
 
       - name: Start static server
         working-directory: donationchain
         run: |
-          npx --yes serve -l 4173 . &
+          set -euo pipefail
+          npx --no-install serve -l 4173 . &
           echo $! > /tmp/serve.pid
-          # Wait until server responds
-          for i in $(seq 1 30); do
+          for i in $(seq 1 40); do
             if curl -sf "http://127.0.0.1:4173/index.html" >/dev/null; then
-              echo "Server ready"
+              echo "Server ready (${i}s)"
               exit 0
             fi
             sleep 1
@@ -59,18 +78,16 @@ jobs:
           exit 1
 
       - name: Run Pa11y CI
-        id: pa11y
         run: |
-          mkdir -p artifacts
           set +e
-          pa11y-ci --config .pa11yci.json --sitemap-find none 2>&1 | tee pa11y-report.txt
+          mkdir -p artifacts
+          pa11y-ci --config .pa11yci.json 2>&1 | tee pa11y-report.txt
           code=${PIPESTATUS[0]}
           set -e
-          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
-          # Upload-friendly summary
           if [ "$code" -ne 0 ]; then
-            echo "::warning::Pa11y found accessibility issues (exit $code). See pa11y-report.txt"
+            echo "::warning::Pa11y reported issues (exit $code). See artifact pa11y-report."
           fi
+          # Non-blocking: always green so deploy is not delayed by a11y noise
           exit 0
 
       - name: Upload Pa11y report
@@ -82,22 +99,22 @@ jobs:
             pa11y-report.txt
             artifacts/a11y-*.png
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 7
+          compression-level: 9
 
       - name: Job summary
         if: always()
         run: |
           {
             echo "## Accessibility (Pa11y WCAG2AA)"
-            echo ""
-            echo "Pages: home, apply (seeker), donor register, donor dashboard, explorer"
+            echo "Pages: home, apply, donor register, dashboard, explorer"
             echo ""
             echo '```'
-            tail -n 80 pa11y-report.txt 2>/dev/null || echo "No report file"
+            tail -n 60 pa11y-report.txt 2>/dev/null || echo "No report file"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Stop server
         if: always()
         run: |
-          if [ -f /tmp/serve.pid ]; then kill $(cat /tmp/serve.pid) 2>/dev/null || true; fi
+          if [ -f /tmp/serve.pid ]; then kill "$(cat /tmp/serve.pid)" 2>/dev/null || true; fi

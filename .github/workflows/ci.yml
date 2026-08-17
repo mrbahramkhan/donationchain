@@ -1,4 +1,4 @@
-# CI — no hard dependency on package-lock (avoids setup-node cache failure)
+# CI — path-filtered, fast syntax checks (no lockfile required)
 
 name: CI
 
@@ -12,62 +12,108 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
-  web:
-    name: Web JS check
+  changes:
+    name: Detect changes
     runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      backend: ${{ steps.filter.outputs.backend }}
+      contracts: ${{ steps.filter.outputs.contracts }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - uses: actions/setup-node@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
         with:
-          node-version: "20"
-      - name: Syntax
+          filters: |
+            web:
+              - 'donationchain/**'
+              - '.github/workflows/ci.yml'
+            backend:
+              - 'donationchain_backend/**'
+              - '.github/workflows/ci.yml'
+            contracts:
+              - 'donationchain_contracts/**'
+              - '.github/workflows/ci.yml'
+
+  web:
+    name: Web JS check
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            donationchain/js
+          sparse-checkout-cone-mode: false
+      - name: Syntax-check JS
         run: |
           set -euo pipefail
-          for f in donationchain/js/*.js; do
+          shopt -s nullglob
+          files=(donationchain/js/*.js)
+          if (( ${#files[@]} == 0 )); then
+            echo "::error::No JS files under donationchain/js"
+            exit 1
+          fi
+          for f in "${files[@]}"; do
             node --check "$f"
             echo "OK $f"
           done
 
   backend:
     name: Backend check
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      # Optional cache only when lockfile exists
-      - name: Cache npm
-        if: hashFiles('donationchain_backend/package-lock.json') != ''
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            donationchain_backend/node_modules
-          key: npm-be-${{ runner.os }}-${{ hashFiles('donationchain_backend/package-lock.json') }}
-          restore-keys: |
-            npm-be-${{ runner.os }}-
-      - name: Syntax
+          sparse-checkout: |
+            donationchain_backend/src
+            donationchain_backend/package.json
+          sparse-checkout-cone-mode: false
+      - name: Syntax-check backend
         run: |
           set -euo pipefail
-          find donationchain_backend/src -name '*.js' -print0 | while IFS= read -r -d '' f; do
+          count=0
+          while IFS= read -r -d '' f; do
             node --check "$f"
             echo "OK $f"
-          done
+            count=$((count + 1))
+          done < <(find donationchain_backend/src -name '*.js' -print0)
+          if [[ "$count" -eq 0 ]]; then
+            echo "::error::No backend JS under src/"
+            exit 1
+          fi
+          echo "Checked $count files"
 
   contracts:
     name: Contracts
+    needs: changes
+    if: needs.changes.outputs.contracts == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - run: |
+          sparse-checkout: |
+            donationchain_contracts
+          sparse-checkout-cone-mode: false
+      - name: Verify contract artifacts
+        run: |
+          set -euo pipefail
           test -f donationchain_contracts/contracts/DonationRegistry.sol
           test -f donationchain_contracts/abi/DonationRegistry.json
           echo OK
