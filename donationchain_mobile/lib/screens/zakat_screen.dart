@@ -132,7 +132,8 @@ class _ZakatScreenState extends State<ZakatScreen> {
               child: const Text(
                 'Nisab (gold standard) + Hawl (one lunar year). '
                 'Zakat is 2.5% only when wealth ≥ Nisab and Hawl is complete. '
-                'Distribute only to Zakat-eligible verified cases.',
+                'Distribute only to Zakat-eligible verified cases. '
+                'Policy is overseen by the Shariah Compliance Board (asnaf rules, no cash to personal accounts).',
                 style: TextStyle(fontSize: 13),
               ),
             ),

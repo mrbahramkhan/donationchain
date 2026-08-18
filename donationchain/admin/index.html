@@ -48,6 +48,7 @@
         <button data-panel="sms-log" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-comment-sms w-4"></i> SMS log</button>
         <button data-panel="fraud" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-shield-halved w-4"></i> Fraud alerts</button>
         <button data-panel="payments-log" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-money-bill-wave w-4"></i> Payments log</button>
+        <button data-panel="shariah" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-moon w-4"></i> Shariah Board</button>
         <p class="text-[10px] uppercase tracking-wider text-slate-500 px-3 pt-4 pb-1">Configuration</p>
         <button data-panel="cfg-general" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-sliders w-4"></i> General</button>
         <button data-panel="cfg-donations" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-hand-holding-heart w-4"></i> Donations</button>
@@ -205,6 +206,66 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <!-- SHARIAH COMPLIANCE BOARD -->
+        <section id="panel-shariah" class="panel space-y-6">
+          <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 text-sm text-slate-700">
+            <p class="font-semibold text-emerald-800 mb-1"><i class="fas fa-moon mr-1"></i> Shariah Compliance Board</p>
+            <p>Review Zakat case eligibility (asnaf), issue compliance certificates, and manage adopted rulings. Public page: <a href="../shariah/index.html" class="text-primary font-semibold underline">/shariah/</a></p>
+          </div>
+          <div id="admin-shariah-stats"></div>
+          <div class="grid lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+              <h2 class="font-bold">Case Zakat eligibility review</h2>
+              <label class="block text-sm"><span class="text-xs font-semibold text-slate-500 uppercase">Case ID</span>
+                <input id="sh-case-id" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="e.g. CASE-1024" /></label>
+              <label class="block text-sm"><span class="text-xs font-semibold text-slate-500 uppercase">Decision</span>
+                <select id="sh-decision" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm">
+                  <option value="eligible">Eligible for Zakat</option>
+                  <option value="ineligible">Not eligible</option>
+                  <option value="needs_info">Needs more information</option>
+                </select></label>
+              <label class="block text-sm"><span class="text-xs font-semibold text-slate-500 uppercase">Asnaf category</span>
+                <select id="sh-asnaf" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm">
+                  <option value="fuqara">Fuqara (poor)</option>
+                  <option value="masakin">Masakin (needy)</option>
+                  <option value="gharimin">Gharimin (debtors)</option>
+                  <option value="fisabilillah">Fi sabilillah</option>
+                  <option value="ibn_sabil">Ibn al-sabil</option>
+                  <option value="">— N/A —</option>
+                </select></label>
+              <label class="block text-sm"><span class="text-xs font-semibold text-slate-500 uppercase">Notes</span>
+                <textarea id="sh-notes" rows="3" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="Verification rationale…"></textarea></label>
+              <button type="button" onclick="submitShariahReview()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl">
+                <i class="fas fa-stamp mr-1"></i> Submit review
+              </button>
+              <p id="sh-review-msg" class="text-xs text-slate-500"></p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+              <h2 class="font-bold">Issue compliance certificate</h2>
+              <label class="block text-sm"><span class="text-xs font-semibold text-slate-500 uppercase">Amount (PKR)</span>
+                <input type="number" id="sh-cert-amount" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" min="1" placeholder="50000" /></label>
+              <label class="block text-sm"><span class="text-xs font-semibold text-slate-500 uppercase">Period label</span>
+                <input id="sh-cert-period" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="Ramadan 1447 / FY 2026" /></label>
+              <label class="block text-sm"><span class="text-xs font-semibold text-slate-500 uppercase">Donor ID (optional)</span>
+                <input id="sh-cert-donor" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="phone or user id" /></label>
+              <label class="block text-sm"><span class="text-xs font-semibold text-slate-500 uppercase">Notes</span>
+                <textarea id="sh-cert-notes" rows="2" class="mt-1 w-full border rounded-xl px-3 py-2.5 text-sm"></textarea></label>
+              <button type="button" onclick="issueShariahCert()" class="bg-primary hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl">
+                <i class="fas fa-certificate mr-1"></i> Issue certificate
+              </button>
+              <div id="sh-cert-result" class="hidden text-xs bg-slate-50 border rounded-xl p-3 font-mono break-all"></div>
+            </div>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <h2 class="font-bold">Board members &amp; rulings</h2>
+              <button type="button" onclick="refreshShariahAdmin()" class="text-sm border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-50">Refresh</button>
+            </div>
+            <div id="admin-shariah-members" class="grid sm:grid-cols-3 gap-3 mb-6"></div>
+            <div id="admin-shariah-rulings" class="space-y-3"></div>
           </div>
         </section>
 
@@ -379,6 +440,7 @@
   <script src="../js/sms.js"></script>
   <script src="../js/organizations.js"></script>
   <script src="../js/config.js"></script>
+  <script src="../js/shariah.js"></script>
   <script>
     // Gate: must be logged in
     if (!window.AdminAuth || !AdminAuth.requireAuth("login.html")) {
@@ -397,6 +459,7 @@
       "sms-log": "SMS log",
       fraud: "Fraud alerts",
       "payments-log": "Payments log",
+      shariah: "Shariah Compliance Board",
       "cfg-general": "General settings",
       "cfg-donations": "Donation rules",
       "cfg-payments": "Payment methods",
@@ -428,6 +491,7 @@
       if (id === "organizations") loadOrganizations();
       if (id === "donors-reg") loadDonorRegistry();
       if (id === "sms-log") loadSmsLog();
+      if (id === "shariah") refreshShariahAdmin();
     }
 
     document.getElementById("side-nav").addEventListener("click", (e) => {
@@ -816,12 +880,131 @@
       } catch (_) {}
     }
 
+    async function refreshShariahAdmin() {
+      if (!window.DCShariah) return;
+      const data = await DCShariah.mountPublic({
+        membersEl: "admin-shariah-members",
+        rulingsEl: "admin-shariah-rulings",
+        statsEl: "admin-shariah-stats",
+      });
+      return data;
+    }
+
+    function authHeaders() {
+      const h = { "Content-Type": "application/json" };
+      try {
+        const t = AdminAuth.getToken && AdminAuth.getToken();
+        if (t) h.Authorization = "Bearer " + t;
+      } catch (_) {}
+      return h;
+    }
+
+    async function submitShariahReview() {
+      const caseId = (document.getElementById("sh-case-id").value || "").trim();
+      const decision = document.getElementById("sh-decision").value;
+      const asnafCategory = document.getElementById("sh-asnaf").value || null;
+      const notes = document.getElementById("sh-notes").value || "";
+      const msg = document.getElementById("sh-review-msg");
+      if (!caseId) {
+        msg.textContent = "Case ID required";
+        return;
+      }
+      const body = { caseId, decision, asnafCategory, notes };
+      try {
+        const res = await fetch(AdminAuth.apiBase() + "/api/shariah/reviews", {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok) {
+          msg.textContent = "Review saved: " + (data.review && data.review.id);
+          showToast("Shariah review submitted");
+          // local demo log
+          try {
+            const key = "dc_shariah_reviews";
+            const list = JSON.parse(localStorage.getItem(key) || "[]");
+            list.push(Object.assign({ at: new Date().toISOString() }, body));
+            localStorage.setItem(key, JSON.stringify(list));
+          } catch (_) {}
+        } else {
+          // offline / demo fallback
+          try {
+            const key = "dc_shariah_reviews";
+            const list = JSON.parse(localStorage.getItem(key) || "[]");
+            list.push(Object.assign({ at: new Date().toISOString(), demo: true }, body));
+            localStorage.setItem(key, JSON.stringify(list));
+          } catch (_) {}
+          msg.textContent = "Saved locally (API: " + (data.error || res.status) + ")";
+          showToast("Review stored (demo local)");
+        }
+      } catch (e) {
+        try {
+          const key = "dc_shariah_reviews";
+          const list = JSON.parse(localStorage.getItem(key) || "[]");
+          list.push(Object.assign({ at: new Date().toISOString(), demo: true }, body));
+          localStorage.setItem(key, JSON.stringify(list));
+        } catch (_) {}
+        msg.textContent = "Saved locally (backend offline)";
+        showToast("Review stored offline");
+      }
+    }
+
+    async function issueShariahCert() {
+      const amount = Number(document.getElementById("sh-cert-amount").value) || 0;
+      const periodLabel = document.getElementById("sh-cert-period").value || "";
+      const donorId = document.getElementById("sh-cert-donor").value || null;
+      const notes = document.getElementById("sh-cert-notes").value || "";
+      const out = document.getElementById("sh-cert-result");
+      if (amount <= 0) {
+        showToast("Enter amount");
+        return;
+      }
+      const body = { amount, periodLabel, donorId, notes };
+      try {
+        const res = await fetch(AdminAuth.apiBase() + "/api/shariah/certificates", {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.certificate) {
+          out.classList.remove("hidden");
+          out.textContent = JSON.stringify(data.certificate, null, 2);
+          showToast("Certificate " + data.certificate.code);
+          return;
+        }
+      } catch (_) {}
+      // demo certificate
+      const code = "SC-DEMO" + Math.random().toString(36).slice(2, 6).toUpperCase();
+      const cert = {
+        code,
+        amount,
+        periodLabel,
+        donorId,
+        notes,
+        issuedAt: new Date().toISOString(),
+        statement:
+          "Demo certificate — Zakat disbursement routed to institutions only under Board rules.",
+      };
+      try {
+        const key = "dc_shariah_certs";
+        const list = JSON.parse(localStorage.getItem(key) || "[]");
+        list.push(cert);
+        localStorage.setItem(key, JSON.stringify(list));
+      } catch (_) {}
+      out.classList.remove("hidden");
+      out.textContent = JSON.stringify(cert, null, 2);
+      showToast("Demo certificate " + code);
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       fillForm(DCConfig.load());
       loadLiveStats();
       refreshSecurityInfo();
       const apiEl = document.getElementById("sec-api-base");
       if (apiEl && window.AdminAuth) apiEl.value = AdminAuth.apiBase();
+      if (location.hash === "#shariah") switchPanel("shariah");
     });
   </script>
 </body>

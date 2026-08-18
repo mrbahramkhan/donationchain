@@ -14,6 +14,7 @@ const ROLES = {
   AUDITOR: 'auditor',
   VOLUNTEER: 'volunteer',
   CORPORATE_CSR: 'corporate_csr',
+  SHARIAH_SCHOLAR: 'shariah_scholar',
 };
 
 /** Permission catalog */
@@ -32,15 +33,21 @@ const PERMISSIONS = {
   'donations:read_all': ['superadmin', 'regional_admin', 'auditor'],
 
   // Zakat
-  'zakat:config_read': ['superadmin', 'regional_admin', 'donor', 'corporate_csr', 'auditor', 'verification_officer'],
+  'zakat:config_read': ['superadmin', 'regional_admin', 'donor', 'corporate_csr', 'auditor', 'verification_officer', 'shariah_scholar'],
   'zakat:config_write': ['superadmin'],
-  'zakat:calculate': ['donor', 'corporate_csr', 'superadmin', 'auditor'],
+  'zakat:calculate': ['donor', 'corporate_csr', 'superadmin', 'auditor', 'shariah_scholar'],
+
+  // Shariah Compliance Board
+  'shariah:board': ['superadmin', 'shariah_scholar', 'auditor'],
+  'shariah:review': ['superadmin', 'shariah_scholar', 'regional_admin', 'verification_officer'],
+  'shariah:certificate': ['superadmin', 'shariah_scholar'],
+  'shariah:rulings_write': ['superadmin', 'shariah_scholar'],
 
   // Admin / audit
-  'admin:dashboard': ['superadmin', 'regional_admin', 'auditor'],
+  'admin:dashboard': ['superadmin', 'regional_admin', 'auditor', 'shariah_scholar'],
   'admin:users': ['superadmin'],
   'admin:config': ['superadmin'],
-  'audit:read': ['superadmin', 'auditor', 'regional_admin'],
+  'audit:read': ['superadmin', 'auditor', 'regional_admin', 'shariah_scholar'],
 
   // Notifications
   'notify:send': ['superadmin', 'regional_admin'],
@@ -95,6 +102,7 @@ function isStaffRole(role) {
     ROLES.REGIONAL_ADMIN,
     ROLES.VERIFICATION_OFFICER,
     ROLES.AUDITOR,
+    ROLES.SHARIAH_SCHOLAR,
   ].includes(r);
 }
 

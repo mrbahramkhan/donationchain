@@ -14,6 +14,7 @@ const DCRBAC = (() => {
     AUDITOR: 'auditor',
     VOLUNTEER: 'volunteer',
     CORPORATE_CSR: 'corporate_csr',
+    SHARIAH_SCHOLAR: 'shariah_scholar',
   };
 
   const SESSION_KEY = 'dc_rbac_session';
@@ -23,10 +24,12 @@ const DCRBAC = (() => {
     'cases:apply': ['seeker', 'superadmin'],
     'cases:applications_admin': ['superadmin', 'regional_admin', 'verification_officer'],
     'donations:create': ['donor', 'corporate_csr', 'superadmin'],
-    'admin:dashboard': ['superadmin', 'regional_admin', 'auditor', 'verification_officer'],
+    'admin:dashboard': ['superadmin', 'regional_admin', 'auditor', 'verification_officer', 'shariah_scholar'],
     'admin:config': ['superadmin'],
-    'zakat:calculate': ['donor', 'corporate_csr', 'superadmin', 'auditor'],
-    'audit:read': ['superadmin', 'auditor', 'regional_admin'],
+    'zakat:calculate': ['donor', 'corporate_csr', 'superadmin', 'auditor', 'shariah_scholar'],
+    'audit:read': ['superadmin', 'auditor', 'regional_admin', 'shariah_scholar'],
+    'shariah:board': ['superadmin', 'shariah_scholar', 'auditor'],
+    'shariah:review': ['superadmin', 'shariah_scholar', 'regional_admin', 'verification_officer'],
   };
 
   function normalizeRole(role) {
