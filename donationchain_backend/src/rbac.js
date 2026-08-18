@@ -24,7 +24,7 @@ const PERMISSIONS = {
   'cases:apply': ['seeker', 'superadmin'],
   'cases:applications_admin': ['superadmin', 'regional_admin', 'verification_officer'],
   'cases:applications_public': ['superadmin', 'regional_admin', 'verification_officer', 'donor', 'ngo', 'auditor', 'corporate_csr'],
-  'cases:zakat_eligibility': ['superadmin', 'regional_admin', 'verification_officer'],
+  'cases:zakat_eligibility': ['superadmin', 'regional_admin', 'verification_officer', 'shariah_scholar'],
   'cases:approve': ['superadmin', 'regional_admin'],
 
   // Donations / payments (API surface)
@@ -44,7 +44,7 @@ const PERMISSIONS = {
   'shariah:rulings_write': ['superadmin', 'shariah_scholar'],
 
   // Admin / audit
-  'admin:dashboard': ['superadmin', 'regional_admin', 'auditor', 'shariah_scholar'],
+  'admin:dashboard': ['superadmin', 'regional_admin', 'auditor', 'verification_officer', 'shariah_scholar'],
   'admin:users': ['superadmin'],
   'admin:config': ['superadmin'],
   'audit:read': ['superadmin', 'auditor', 'regional_admin', 'shariah_scholar'],
@@ -57,8 +57,10 @@ const PERMISSIONS = {
   'ledger:read': ['superadmin', 'auditor', 'regional_admin', 'donor'],
   'ledger:write': ['superadmin'],
 
-  // Vendor
+  // Vendor / NGO / field
   'vendor:invoices': ['vendor', 'superadmin', 'regional_admin'],
+  'ngo:verify_field': ['ngo', 'superadmin', 'regional_admin', 'verification_officer'],
+  'volunteer:field_tasks': ['volunteer', 'verification_officer', 'superadmin'],
 };
 
 function normalizeRole(role) {
