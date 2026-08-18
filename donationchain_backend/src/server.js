@@ -12,6 +12,7 @@ const casesRouter = require('./routes/cases');
 const zakatRouter = require('./routes/zakat');
 const organizationsRouter = require('./routes/organizations');
 const shariahRouter = require('./routes/shariah');
+const billsRouter = require('./routes/bills');
 const { requireAuth } = require('./middleware/auth');
 const { initFirebase } = require('./services/fcm');
 
@@ -43,6 +44,7 @@ app.use('/api/cases', casesRouter);
 app.use('/api/zakat', zakatRouter);
 app.use('/api/organizations', organizationsRouter);
 app.use('/api/shariah', shariahRouter);
+app.use('/api/bills', billsRouter);
 
 // Simple in-memory token registry (demo — replace with DB)
 const tokenStore = new Map(); // userId -> token

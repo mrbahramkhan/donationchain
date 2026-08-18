@@ -454,6 +454,7 @@
             <label class="toggle-row text-sm"><span>PWA / service worker</span><input type="checkbox" id="f-pwa" class="rounded text-primary" /></label>
             <label class="toggle-row text-sm"><span>Show impact stats on home</span><input type="checkbox" id="f-stats" class="rounded text-primary" /></label>
             <label class="toggle-row text-sm"><span>Require login to donate</span><input type="checkbox" id="f-login" class="rounded text-primary" /></label>
+            <label class="toggle-row text-sm"><span>Utility bill payment</span><input type="checkbox" id="f-bills" class="rounded text-primary" /></label>
           </div>
         </section>
 
@@ -697,6 +698,8 @@
       document.getElementById("f-pwa").checked = !!cfg.features.pwa;
       document.getElementById("f-stats").checked = !!cfg.features.showImpactStats;
       document.getElementById("f-login").checked = !!cfg.features.requireLoginToDonate;
+      const fb = document.getElementById("f-bills");
+      if (fb) fb.checked = cfg.features.billPayment !== false;
 
       document.getElementById("s-title").value = cfg.seo.siteTitle;
       document.getElementById("s-desc").value = cfg.seo.metaDescription;
@@ -776,6 +779,9 @@
           pwa: document.getElementById("f-pwa").checked,
           showImpactStats: document.getElementById("f-stats").checked,
           requireLoginToDonate: document.getElementById("f-login").checked,
+          billPayment: document.getElementById("f-bills")
+            ? document.getElementById("f-bills").checked
+            : true,
         },
         seo: {
           siteTitle: document.getElementById("s-title").value.trim(),

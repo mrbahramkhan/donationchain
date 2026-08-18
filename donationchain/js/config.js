@@ -69,6 +69,7 @@ const DCConfig = (() => {
       pwa: true,
       requireLoginToDonate: false,
       showImpactStats: true,
+      billPayment: true,
     },
     seo: {
       siteTitle: "DonationChain — Transparent Donations",

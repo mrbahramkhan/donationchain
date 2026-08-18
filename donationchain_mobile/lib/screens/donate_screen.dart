@@ -105,6 +105,13 @@ class _DonateScreenState extends State<DonateScreen> {
                         style: TextStyle(color: Colors.grey.shade600),
                       ),
                     ],
+                    if (widget.caseItem?.category == 'utility') ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        'Utility bill: payment goes direct to the provider (WAPDA/SNGPL/etc.), not personal cash.',
+                        style: TextStyle(fontSize: 12, color: Colors.teal.shade800),
+                      ),
+                    ],
                   ],
                 ),
               ),

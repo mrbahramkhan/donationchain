@@ -264,6 +264,7 @@ const DCForms = (() => {
       urgency: String(fd.get("urgency") || "medium"),
       vendorName: String(fd.get("vendorName") || "").trim(),
       vendorAccount: String(fd.get("vendorAccount") || "").trim(),
+      billReference: String(fd.get("billReference") || "").trim(),
       consent: fd.get("consent") === "on",
     };
 
@@ -310,6 +311,7 @@ const DCForms = (() => {
         urgency: data.urgency,
         vendorName: data.vendorName,
         vendorAccount: data.vendorAccount,
+        billReference: data.billReference || null,
       },
       consent: true,
       proofs,

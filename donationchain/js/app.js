@@ -5,6 +5,8 @@ const DC = {
     { id: 2, title: "School Fees — Fatima, Class 8", category: "education", city: "Karachi", amount: 42000, raised: 28000, urgency: "high", verified: true, vendor: "Beaconhouse School", desc: "Annual fees + books. Enrollment confirmed by school." },
     { id: 3, title: "Monthly Food Package — Family of 6", category: "food", city: "Rawalpindi", amount: 15000, raised: 9000, urgency: "medium", verified: true, vendor: "Verified Grocery Vendor", desc: "Staples for 30 days. GPS delivery with photo proof." },
     { id: 4, title: "Utility Bill (WAPDA) — Widow Household", category: "utility", city: "Faisalabad", amount: 18500, raised: 12000, urgency: "high", verified: true, vendor: "WAPDA", desc: "Overdue electricity bill. Direct payment to utility." },
+    { id: 9, title: "SNGPL Gas Bill — Low-income Family", category: "utility", city: "Lahore", amount: 9200, raised: 2100, urgency: "high", verified: true, vendor: "SNGPL", desc: "Winter gas arrears. Pay exact bill to SNGPL account only." },
+    { id: 10, title: "Water Bill (WASA) — Orphan Household", category: "utility", city: "Multan", amount: 4500, raised: 0, urgency: "medium", verified: true, vendor: "WASA Multan", desc: "Connection at risk of disconnect. Direct board payment." },
     { id: 5, title: "Cancer Treatment — Ayesha", category: "medical", city: "Islamabad", amount: 220000, raised: 145000, urgency: "critical", verified: true, vendor: "Shifa International", desc: "Chemotherapy cycle 3 of 6. Hospital invoice verified." },
     { id: 6, title: "University Semester Fee — Hassan", category: "education", city: "Lahore", amount: 65000, raised: 40000, urgency: "medium", verified: true, vendor: "UET Lahore", desc: "Engineering semester fee. Direct to university account." },
     { id: 7, title: "Emergency Medicines — Elderly Couple", category: "medical", city: "Multan", amount: 12000, raised: 3500, urgency: "high", verified: true, vendor: "Aga Khan Pharmacy", desc: "Prescription verified. Pharmacy fulfillment only." },
@@ -686,6 +688,17 @@ function applyAdminConfig() {
   // Zakat section
   const zakatSec = document.getElementById("zakat");
   if (zakatSec) zakatSec.style.display = cfg.zakat.calculatorEnabled === false ? "none" : "";
+
+  // Bill payment section
+  const billsSec = document.getElementById("bills");
+  if (billsSec) {
+    const on =
+      cfg.features &&
+      cfg.features.billPayment !== false &&
+      cfg.categories &&
+      cfg.categories.utility !== false;
+    billsSec.style.display = on ? "" : "none";
+  }
 
   // Maintenance
   if (cfg.general.maintenanceMode) {

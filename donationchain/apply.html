@@ -133,6 +133,11 @@
             <input name="vendorName" class="mt-1.5 w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm" placeholder="Where should payment go?" />
           </label>
           <label class="block text-sm sm:col-span-2">
+            <span class="text-xs font-semibold text-slate-500 uppercase">Utility bill reference (if category = Utility)</span>
+            <input name="billReference" class="mt-1.5 w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm" placeholder="WAPDA / SNGPL / water consumer number" />
+            <span class="text-[11px] text-slate-400 mt-1 block">Payment will go to the utility company for this reference — not to a personal account.</span>
+          </label>
+          <label class="block text-sm sm:col-span-2">
             <span class="text-xs font-semibold text-slate-500 uppercase">Institution account / IBAN (optional)</span>
             <input name="vendorAccount" class="mt-1.5 w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm font-mono" placeholder="Helps direct payment — never a personal wallet" />
           </label>
