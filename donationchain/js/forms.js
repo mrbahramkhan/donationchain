@@ -315,9 +315,15 @@ const DCForms = (() => {
       proofs,
     };
 
-    const all = load(CASES_KEY);
-    all.unshift(record);
-    save(CASES_KEY, all);
+    // Privacy: private store (admin) + public projection (no phone/CNIC/address)
+    if (window.DCPrivacy) {
+      DCPrivacy.storeApplicationWithPrivacy(record);
+    } else {
+      const all = load(CASES_KEY);
+      all.unshift(record);
+      save(CASES_KEY, all);
+    }
+    // Return full record to the applicant only (success screen); never render raw PII on public lists
     return record;
   }
 
@@ -354,21 +360,50 @@ const DCForms = (() => {
       ...data,
     };
 
-    const all = load(DONORS_KEY);
-    const idx = all.findIndex((d) => d.phone === record.phone);
-    if (idx >= 0) {
-      record.id = all[idx].id;
-      all[idx] = { ...all[idx], ...record, updatedAt: record.createdAt };
+    // Full profile private; public list never gets phone/CNIC/email
+    if (window.DCPrivacy) {
+      DCPrivacy.savePrivateDonor(record);
+      const pub = DCPrivacy.toPublicDonor(record);
+      const all = load(DONORS_KEY);
+      const idx = all.findIndex((d) => d.id === record.id);
+      if (idx >= 0) all[idx] = { ...all[idx], ...pub };
+      else all.unshift(pub);
+      // Also keep phone-keyed private for login session only in sessionStorage
+      try {
+        sessionStorage.setItem("dc_donor_session", JSON.stringify({
+          id: record.id,
+          fullName: record.fullName,
+          phone: record.phone,
+          email: record.email,
+        }));
+      } catch (_) {}
+      save(DONORS_KEY, all);
     } else {
-      all.unshift(record);
+      const all = load(DONORS_KEY);
+      const idx = all.findIndex((d) => d.phone === record.phone);
+      if (idx >= 0) {
+        record.id = all[idx].id;
+        all[idx] = { ...all[idx], ...record, updatedAt: record.createdAt };
+      } else {
+        all.unshift(record);
+      }
+      save(DONORS_KEY, all);
     }
-    save(DONORS_KEY, all);
     localStorage.setItem("dc_donor_profile_id", record.id);
     return record;
   }
 
   function listApplications() {
+    // Public projection only (no PII)
     return load(CASES_KEY);
+  }
+
+  function listPrivateApplications() {
+    try {
+      return JSON.parse(localStorage.getItem("dc_case_applications_private") || "[]");
+    } catch {
+      return [];
+    }
   }
 
   function listDonors() {

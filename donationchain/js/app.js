@@ -45,6 +45,18 @@ function getFilteredCases() {
   return list;
 }
 
+
+function orgBadgeHtml(vendorName) {
+  if (!window.DCOrgs) return "";
+  const org = DCOrgs.findByName(vendorName);
+  const b = DCOrgs.badge(org);
+  const pay = org && DCOrgs.canReceivePayment(org);
+  const title = org
+    ? (pay ? "Organization verified for direct payment" : "Organization not yet cleared for payment")
+    : "Organization not in registry";
+  return ` <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${b.cls}" title="${title}"><i class="fas fa-building-columns"></i> ${b.label}</span>`;
+}
+
 function renderCases() {
   const grid = document.getElementById("cases-grid");
   const empty = document.getElementById("cases-empty");
@@ -73,7 +85,7 @@ function renderCases() {
             ${c.verified ? '<span class="text-success text-xs font-semibold flex items-center gap-1"><i class="fas fa-shield-halved"></i> ' + (typeof t === "function" ? t("cases.verified") : "Verified") + '</span>' : ""}
           </div>
           <h3 class="font-bold text-slate-900 text-[15px] leading-snug mb-1 group-hover:text-primary transition">${c.title}</h3>
-          <p class="text-xs text-slate-500 mb-2"><i class="fas fa-location-dot mr-1"></i>${c.city} · ${c.vendor}</p>
+          <p class="text-xs text-slate-500 mb-2"><i class="fas fa-location-dot mr-1"></i>${c.city} · ${c.vendor}${typeof orgBadgeHtml === "function" ? orgBadgeHtml(c.vendor) : ""}</p>
           <p class="text-sm text-slate-600 mb-4 line-clamp-2 flex-1">${c.desc}</p>
           <div class="mb-1 flex justify-between text-xs">
             <span class="font-semibold text-slate-800">${formatPKR(c.raised)}</span>
@@ -96,10 +108,23 @@ function renderCases() {
 
 function selectCase(id) {
   DC.selectedCase = DC.cases.find(c => c.id === id) || null;
+  if (DC.selectedCase && window.DCOrgs) {
+    const org = DCOrgs.findByName(DC.selectedCase.vendor);
+    if (org && !DCOrgs.canReceivePayment(org)) {
+      showToast("This organization is not fully verified for payments yet.");
+      return;
+    }
+  }
   openDonate(false);
 }
 
 function openDonate(isZakat) {
+  if (window.DCRBAC) {
+    const check = DCRBAC.assertDonorForDonate();
+    if (!check.ok) {
+      showToast(check.message);
+    }
+  }
   if (window.DCConfig) {
     const f = DCConfig.load().features;
     if (f.requireLoginToDonate && !localStorage.getItem("dc_user")) {
@@ -302,12 +327,16 @@ function processPayment() {
     showReceipt(record);
     if (window.DCSMS && record) {
       try {
-        const donorPhone = (JSON.parse(localStorage.getItem("dc_donor_profiles") || "[]")[0] || {}).phone
-          || (localStorage.getItem("dc_user_phone") || "");
-        const casePhone = (record.beneficiaryPhone) || "";
+        // Privacy: never attach seeker phone from public case/donation records
+        let donorPhone = "";
+        try {
+          const sess = JSON.parse(sessionStorage.getItem("dc_donor_session") || "null");
+          if (sess && sess.phone) donorPhone = sess.phone;
+        } catch (_) {}
+        if (!donorPhone) donorPhone = localStorage.getItem("dc_user_phone") || "";
         DCSMS.notifyDonation({
           donorPhone: donorPhone || undefined,
-          beneficiaryPhone: casePhone || undefined,
+          beneficiaryPhone: undefined,
           amount: record.amount,
           receiptId: record.id,
           caseTitle: record.case || record.caseTitle || "",

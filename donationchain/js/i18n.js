@@ -1,5 +1,5 @@
 /**
- * DonationChain i18n — English / اردو
+ * DonationChain i18n — English / Urdu / Arabic
  */
 const I18n = (() => {
   const KEY = "dc_lang";
@@ -17,12 +17,15 @@ const I18n = (() => {
       "nav.login": "Login",
       "nav.dashboard": "Dashboard",
       "nav.donate": "Donate",
+      "nav.needHelp": "Need help",
+      "nav.becomeDonor": "Donate",
+      "footer.more": "More",
       // hero
-      "hero.live": "Live · PKR 2.84B delivered with full audit trail",
-      "hero.title1": "Every rupee",
-      "hero.title2": "tracked & proven",
-      "hero.sub": "Zero middleman. Direct payments to hospitals, schools, and verified vendors. AI fraud checks. Zakat-compliant. Built for donor trust.",
-      "hero.browse": "Browse verified cases",
+      "hero.live": "Direct to hospitals, schools & vendors",
+      "hero.title1": "Donors meet people in need.",
+      "hero.title2": "Payment goes to the hospital or school.",
+      "hero.sub": "Simple: someone needs help, someone gives help. Money is paid only to the relevant organization — never as personal cash.",
+      "hero.browse": "See open cases",
       "hero.how": "How it works",
       "hero.donors": "Donors",
       "hero.closed": "Cases closed",
@@ -38,7 +41,7 @@ const I18n = (() => {
       "trust.pci": "PCI-ready payments",
       // cases
       "cases.title": "Verified cases",
-      "cases.sub": "Screened by AI + officers. Payments go only to registered institutions.",
+      "cases.sub": "Pick a case. Your payment goes to the hospital, school, or vendor — not to personal cash.",
       "cases.search": "Search city, hospital, school…",
       "cases.all": "All",
       "cases.medical": "Medical",
@@ -58,15 +61,15 @@ const I18n = (() => {
       "urgency.medium": "Medium",
       // how
       "how.title": "How DonationChain works",
-      "how.sub": "Designed so donors never wonder where money went.",
-      "how.1t": "Case verified",
-      "how.1d": "CNIC checks, AI document scoring, officer review, and optional NGO field visit.",
-      "how.2t": "You donate",
-      "how.2d": "JazzCash, EasyPaisa, Raast, or card. Amount linked to a specific case and category.",
-      "how.3t": "Vendor paid directly",
-      "how.3d": "Hospital, school, or utility receives funds in their registered account — never cash-in-hand.",
-      "how.4t": "Proof in dashboard",
-      "how.4d": "Invoice, delivery photo, or enrollment proof appears in your impact timeline within 48 hours.",
+      "how.sub": "Three steps. No middleman cash.",
+      "how.1t": "Need is listed",
+      "how.1d": "A person submits a need. We verify the case and the institution.",
+      "how.2t": "You give",
+      "how.2d": "A donor chooses a case and pays.",
+      "how.3t": "Organization is paid",
+      "how.3d": "Payment goes straight to that hospital, school, or vendor account.",
+      "how.4t": "Proof",
+      "how.4d": "You can see that the organization received the payment.",
       // zakat
       "zakat.badge": "Islamic giving",
       "zakat.title": "Zakat calculator",
@@ -151,6 +154,9 @@ const I18n = (() => {
       "nav.login": "لاگ اِن",
       "nav.dashboard": "ڈیش بورڈ",
       "nav.donate": "عطیہ دیں",
+      "nav.needHelp": "مدد چاہیے",
+      "nav.becomeDonor": "ڈونر بنیں",
+      "footer.more": "مزید",
       "hero.live": "لائیو · ۲.۸۴ ارب روپے مکمل آڈٹ کے ساتھ پہنچائے گئے",
       "hero.title1": "ہر روپیہ",
       "hero.title2": "ٹریک اور ثابت",
@@ -260,14 +266,63 @@ const I18n = (() => {
       "lang.en": "English",
       "lang.ur": "اردو",
     },
+    ar: {
+      "nav.cases": "الحالات",
+      "nav.how": "كيف يعمل",
+      "nav.zakat": "الزكاة",
+      "nav.trust": "الثقة",
+      "nav.verify": "تحقق",
+      "nav.explorer": "المستكشف",
+      "nav.impact": "أثري",
+      "nav.admin": "الإدارة",
+      "nav.login": "تسجيل الدخول",
+      "nav.dashboard": "لوحة التحكم",
+      "nav.donate": "تبرع",
+      "nav.needHelp": "أحتاج مساعدة",
+      "nav.becomeDonor": "كن متبرعاً",
+      "footer.more": "المزيد",
+      "footer.product": "المنتج",
+      "footer.platform": "المنصة",
+      "hero.live": "مباشر · تتبع كامل للتبرعات",
+      "hero.title1": "كل روبية",
+      "hero.title2": "متابعة ومثبتة",
+      "hero.sub": "بدون وسيط. دفع مباشر للمستشفيات والمدارس والبائعين الموثوقين. متوافق مع الزكاة.",
+      "hero.browse": "تصفح الحالات الموثقة",
+      "hero.how": "كيف يعمل",
+      "hero.donors": "المتبرعون",
+      "hero.closed": "حالات مكتملة",
+      "hero.fraud": "تقليل الاحتيال",
+      "cases.title": "حالات موثقة",
+      "cases.sub": "فحص بالذكاء الاصطناعي والموظفين. المدفوعات للمؤسسات المسجلة فقط.",
+      "cases.search": "ابحث عن مدينة أو مستشفى أو مدرسة…",
+      "cases.all": "الكل",
+      "cases.medical": "طبي",
+      "cases.education": "تعليم",
+      "cases.food": "غذاء",
+      "cases.utility": "مرافق",
+      "cases.donate": "تبرع",
+      "cases.details": "التفاصيل",
+      "cases.verified": "موثق",
+      "zakat.title": "حاسبة الزكاة",
+      "zakat.calc": "احسب الزكاة",
+      "donate.title": "إتمام التبرع",
+      "nav.login": "تسجيل الدخول",
+      "lang.en": "English",
+      "lang.ur": "اردو",
+      "lang.ar": "العربية",
+    },
   };
 
+  const SUPPORTED = ["en", "ur", "ar"];
+
   function getLang() {
-    return localStorage.getItem(KEY) === "ur" ? "ur" : "en";
+    const l = localStorage.getItem(KEY) || "en";
+    return SUPPORTED.includes(l) ? l : "en";
   }
 
   function setLang(lang) {
-    localStorage.setItem(KEY, lang === "ur" ? "ur" : "en");
+    const l = SUPPORTED.includes(lang) ? lang : "en";
+    localStorage.setItem(KEY, l);
     apply();
     return getLang();
   }
@@ -279,8 +334,8 @@ const I18n = (() => {
 
   function apply() {
     const lang = getLang();
-    document.documentElement.lang = lang === "ur" ? "ur" : "en";
-    document.documentElement.dir = lang === "ur" ? "rtl" : "ltr";
+    document.documentElement.lang = lang === "ar" ? "ar" : lang === "ur" ? "ur" : "en";
+    document.documentElement.dir = (lang === "ur" || lang === "ar") ? "rtl" : "ltr";
 
     document.querySelectorAll("[data-i18n]").forEach((el) => {
       const key = el.getAttribute("data-i18n");
@@ -299,14 +354,14 @@ const I18n = (() => {
       if (key) el.placeholder = t(key);
     });
 
-    // Toggle button label
+    const sel = document.getElementById("lang-select");
+    if (sel) sel.value = lang;
     const btn = document.getElementById("lang-toggle");
     if (btn) {
-      btn.textContent = lang === "ur" ? "English" : "اردو";
-      btn.setAttribute("aria-label", lang === "ur" ? "Switch to English" : "اردو میں تبدیل کریں");
+      btn.textContent = lang === "en" ? "اردو" : "English";
+      btn.setAttribute("aria-label", "Switch language");
     }
 
-    // Re-render dynamic case cards if available
     if (typeof renderCases === "function") {
       try { renderCases(); } catch (_) {}
     }
@@ -315,10 +370,12 @@ const I18n = (() => {
   }
 
   function toggle() {
-    return setLang(getLang() === "ur" ? "en" : "ur");
+    const order = ["en", "ur", "ar"];
+    const i = order.indexOf(getLang());
+    return setLang(order[(i + 1) % order.length]);
   }
 
-  return { getLang, setLang, toggle, t, apply, dict };
+  return { getLang, setLang, toggle, t, apply, dict, SUPPORTED };
 })();
 
 window.I18n = I18n;

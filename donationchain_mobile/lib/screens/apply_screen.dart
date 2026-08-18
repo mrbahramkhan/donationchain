@@ -102,7 +102,9 @@ class _ApplyScreenState extends State<ApplyScreen> {
                 ),
                 child: const Text(
                   'This form is only for people who need support. '
-                  'Donors use a separate login. Payment goes to verified institutions only.',
+                  'Donors use a separate login. Payment goes to verified institutions only.\n\n'
+                  'Privacy: Your phone, CNIC, address and documents are not shown on public case cards. '
+                  'Donors see city, need title and institution — no direct chat.',
                   style: TextStyle(fontSize: 13),
                 ),
               ),

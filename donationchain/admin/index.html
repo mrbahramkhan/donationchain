@@ -43,6 +43,7 @@
         <button data-panel="overview" class="nav-item active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-chart-pie w-4"></i> Overview</button>
         <button data-panel="pipeline" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-columns w-4"></i> Case pipeline</button>
         <button data-panel="applications" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-inbox w-4"></i> Applications</button>
+        <button data-panel="organizations" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-building-columns w-4"></i> Organizations</button>
         <button data-panel="donors-reg" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-users w-4"></i> Donor registry</button>
         <button data-panel="sms-log" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-comment-sms w-4"></i> SMS log</button>
         <button data-panel="fraud" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-800"><i class="fas fa-shield-halved w-4"></i> Fraud alerts</button>
@@ -123,11 +124,40 @@
         </section>
         <section id="panel-applications" class="panel">
           <div class="flex justify-between items-center mb-4">
-            <p class="text-sm text-slate-500">Zarooratmand submissions (this browser)</p>
+            <p class="text-sm text-slate-500">Seeker applications (this browser)</p>
             <button onclick="loadApplications()" class="text-sm text-primary font-semibold">Refresh</button>
           </div>
           <div id="apps-list" class="space-y-3"></div>
         </section>
+        
+        <section id="panel-organizations" class="panel">
+          <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="font-bold text-lg">Organizations</h2>
+                <p class="text-xs text-slate-500">Hospitals, schools, vendors — verify before payouts</p>
+              </div>
+              <button type="button" onclick="loadOrganizations()" class="text-sm text-primary font-semibold">Refresh</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="text-xs text-slate-500 uppercase border-b">
+                  <tr>
+                    <th class="py-2 pr-3">Name</th>
+                    <th class="py-2 pr-3">Type</th>
+                    <th class="py-2 pr-3">City</th>
+                    <th class="py-2 pr-3">Status</th>
+                    <th class="py-2 pr-3">Score</th>
+                    <th class="py-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="org-table-body" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+            <p class="text-xs text-slate-400 mt-4">Only <strong>bank_verified</strong> and <strong>verified</strong> organizations can receive donor payments.</p>
+          </div>
+        </section>
+
         <section id="panel-donors-reg" class="panel">
           <div class="flex justify-between items-center mb-4">
             <p class="text-sm text-slate-500">Registered donors</p>
@@ -347,6 +377,7 @@
   <script src="../js/admin-auth.js"></script>
   <script src="../js/forms.js"></script>
   <script src="../js/sms.js"></script>
+  <script src="../js/organizations.js"></script>
   <script src="../js/config.js"></script>
   <script>
     // Gate: must be logged in
@@ -360,6 +391,10 @@
     const titles = {
       overview: "Overview",
       pipeline: "Case pipeline",
+      applications: "Applications",
+      organizations: "Organizations",
+      "donors-reg": "Donor registry",
+      "sms-log": "SMS log",
       fraud: "Fraud alerts",
       "payments-log": "Payments log",
       "cfg-general": "General settings",
@@ -371,6 +406,7 @@
       "cfg-chain": "Blockchain",
       "cfg-features": "Feature flags",
       "cfg-seo": "SEO & branding",
+      "cfg-security": "Security",
     };
 
     function showToast(msg) {
@@ -389,6 +425,7 @@
       if (btn) btn.classList.add("active");
       document.getElementById("panel-title").textContent = titles[id] || id;
       if (id === "applications") loadApplications();
+      if (id === "organizations") loadOrganizations();
       if (id === "donors-reg") loadDonorRegistry();
       if (id === "sms-log") loadSmsLog();
     }
@@ -553,6 +590,40 @@
       const cfg = DCConfig.reset();
       fillForm(cfg);
       showToast("Defaults restored");
+    }
+
+    
+    function loadOrganizations() {
+      const body = document.getElementById("org-table-body");
+      if (!body) return;
+      if (!window.DCOrgs) {
+        body.innerHTML = "<tr><td colspan=\"6\" class=\"py-4 text-slate-500\">organizations.js not loaded</td></tr>";
+        return;
+      }
+      const list = DCOrgs.load();
+      body.innerHTML = list.map((o) => {
+        const b = DCOrgs.badge(o);
+        const score = DCOrgs.checklistScore(o);
+        const can = DCOrgs.canReceivePayment(o);
+        return "<tr>" +
+          "<td class=\"py-2.5 pr-3 font-medium\">" + o.name + "</td>" +
+          "<td class=\"py-2.5 pr-3\">" + (o.type || "—") + "</td>" +
+          "<td class=\"py-2.5 pr-3\">" + (o.city || "—") + "</td>" +
+          "<td class=\"py-2.5 pr-3\"><span class=\"px-2 py-0.5 rounded text-[11px] font-semibold " + b.cls + "\">" + b.label + "</span>" +
+          (can ? " <span class=\"text-emerald-600 text-[11px]\">payouts OK</span>" : "") + "</td>" +
+          "<td class=\"py-2.5 pr-3\">" + score + "%</td>" +
+          "<td class=\"py-2.5 space-x-1\">" +
+          "<button type=\"button\" class=\"text-xs text-primary font-semibold\" onclick=\"setOrgStatus('" + o.id + "','documents')\">Docs</button>" +
+          "<button type=\"button\" class=\"text-xs text-primary font-semibold\" onclick=\"setOrgStatus('" + o.id + "','bank_verified')\">Bank</button>" +
+          "<button type=\"button\" class=\"text-xs text-emerald-700 font-semibold\" onclick=\"setOrgStatus('" + o.id + "','verified')\">Verify</button>" +
+          "<button type=\"button\" class=\"text-xs text-red-600 font-semibold\" onclick=\"setOrgStatus('" + o.id + "','suspended')\">Suspend</button>" +
+          "</td></tr>";
+      }).join("") || "<tr><td colspan=\"6\" class=\"py-4 text-slate-500\">No organizations</td></tr>";
+    }
+    function setOrgStatus(id, status) {
+      if (!window.DCOrgs) return;
+      DCOrgs.setStatus(id, status);
+      loadOrganizations();
     }
 
     function loadApplications() {

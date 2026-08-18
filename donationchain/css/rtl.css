@@ -12,16 +12,78 @@
  */
 
 /* ── 1. Typography & base ───────────────────────────────── */
-html[dir="rtl"] body {
-  font-family: "Noto Nastaliq Urdu", Inter, "Segoe UI", Tahoma, sans-serif;
-  text-align: start; /* follows direction */
-  letter-spacing: 0; /* Nastaliq dislikes tracking */
+/* Urdu — performance strategy:
+ * - Body/UI: Noto Naskh Arabic (faster OpenType shaping)
+ * - Headings + .font-nastaliq: Noto Nastaliq Urdu after on-demand load
+ * - Fewer weights (400/700 only), display=swap, no per-element font overrides
+ */
+html[lang="ur"] body {
+  font-family: "Noto Naskh Arabic", Inter, "Segoe UI", Tahoma, sans-serif;
+  text-align: start;
+  letter-spacing: 0;
+  line-height: 1.65;
+  text-rendering: optimizeSpeed; /* prefer speed over geometric precision for long pages */
+  -webkit-font-smoothing: antialiased;
+}
+
+html[lang="ur"] h1,
+html[lang="ur"] h2,
+html[lang="ur"] h3,
+html[lang="ur"] h4 {
+  line-height: 1.7;
+  font-weight: 700;
+  /* Fallback Naskh until Nastaliq stylesheet is ready */
+  font-family: "Noto Naskh Arabic", Inter, sans-serif;
+}
+
+html[lang="ur"].fonts-nastaliq-ready h1,
+html[lang="ur"].fonts-nastaliq-ready h2,
+html[lang="ur"].fonts-nastaliq-ready h3,
+html[lang="ur"].fonts-nastaliq-ready h4,
+html[lang="ur"].fonts-nastaliq-ready .font-nastaliq {
+  font-family: "Noto Nastaliq Urdu", "Noto Naskh Arabic", sans-serif;
+  text-rendering: optimizeLegibility;
+  line-height: 1.8;
+}
+
+/* Avoid expensive Nastaliq on dense UI controls */
+html[lang="ur"] button,
+html[lang="ur"] input,
+html[lang="ur"] select,
+html[lang="ur"] textarea,
+html[lang="ur"] .font-mono,
+html[lang="ur"] [data-ltr] {
+  font-family: "Noto Naskh Arabic", Inter, Tahoma, sans-serif !important;
+  letter-spacing: 0;
+}
+
+/* Arabic — Noto Naskh Arabic (not Nastaliq) */
+html[lang="ar"],
+html[lang="ar"] body {
+  font-family: "Noto Naskh Arabic", "Noto Sans Arabic", Inter, Tahoma, sans-serif;
+  text-align: start;
+  letter-spacing: 0;
+}
+
+html[lang="ar"] h1,
+html[lang="ar"] h2,
+html[lang="ar"] h3 {
+  line-height: 1.6;
+  font-weight: 700;
+  font-family: "Noto Naskh Arabic", "Noto Sans Arabic", sans-serif;
+}
+
+/* Generic RTL fallback if lang not set */
+html[dir="rtl"]:not([lang="ur"]):not([lang="ar"]) body {
+  font-family: "Noto Naskh Arabic", Inter, "Segoe UI", Tahoma, sans-serif;
+  text-align: start;
+  letter-spacing: 0;
 }
 
 html[dir="rtl"] h1,
 html[dir="rtl"] h2,
 html[dir="rtl"] h3 {
-  line-height: 1.6; /* Nastaliq needs more vertical room */
+  line-height: 1.65;
   font-weight: 700;
 }
 

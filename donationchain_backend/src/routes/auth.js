@@ -33,11 +33,20 @@ router.post('/login', (req, res) => {
 });
 
 router.get('/me', requireAuth, (req, res) => {
+  const { hasPermission, isStaffRole } = require('../rbac');
   res.json({
     user: {
       id: req.user.sub,
       username: req.user.username,
       role: req.user.role,
+      isStaff: isStaffRole(req.user.role),
+    },
+    permissions: {
+      'cases:applications_admin': hasPermission(req.user.role, 'cases:applications_admin'),
+      'cases:zakat_eligibility': hasPermission(req.user.role, 'cases:zakat_eligibility'),
+      'admin:dashboard': hasPermission(req.user.role, 'admin:dashboard'),
+      'admin:config': hasPermission(req.user.role, 'admin:config'),
+      'audit:read': hasPermission(req.user.role, 'audit:read'),
     },
     exp: req.user.exp,
   });

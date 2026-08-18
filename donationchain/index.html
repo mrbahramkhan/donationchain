@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DonationChain — Transparent Donations | Zakat, Medical, Education</title>
-  <meta name="description" content="Pakistan's transparent donation platform. Zero middleman. Direct payments to hospitals, schools & vendors. AI fraud checks. Full audit trail." />
+  <title>DonationChain — Donors, seekers, direct to organizations</title>
+  <meta name="description" content="Pakistan's transparent donation platform. Connect donors and people in need. Payments go only to relevant organizations. AI fraud checks. Full audit trail." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://donationchain.pk/" />
   <meta property="og:title" content="DonationChain — Transparent Giving" />
@@ -30,9 +30,26 @@
     }
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Inter + Naskh always (UI). Nastaliq loaded on-demand when lang=ur — see js/fonts.js -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet" />
+  <link id="font-nastaliq" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" media="print" onload="this.media='all'" disabled />
   <style>
     body { font-family: Inter, system-ui, sans-serif; }
+    /* Urdu UI uses Naskh (fast); Nastaliq only on headings when fonts ready */
+    html[lang="ur"] body {
+      font-family: "Noto Naskh Arabic", Inter, Tahoma, sans-serif;
+    }
+    html[lang="ur"].fonts-nastaliq-ready h1,
+    html[lang="ur"].fonts-nastaliq-ready h2,
+    html[lang="ur"].fonts-nastaliq-ready h3,
+    html[lang="ur"].fonts-nastaliq-ready .font-nastaliq {
+      font-family: "Noto Nastaliq Urdu", "Noto Naskh Arabic", sans-serif;
+    }
+    html[lang="ar"] body {
+      font-family: "Noto Naskh Arabic", Inter, Tahoma, sans-serif;
+    }
     .hero-gradient { background: linear-gradient(135deg, #1A56DB 0%, #0E4DB5 45%, #0891B2 100%); }
     .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
@@ -56,20 +73,25 @@
         <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/25" aria-hidden="true">D</div>
         <span class="text-lg font-bold text-slate-900 tracking-tight">Donation<span class="text-primary">Chain</span></span>
       </a>
-      <div class="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
+      <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
         <a href="#cases" class="hover:text-primary transition" data-i18n="nav.cases">Cases</a>
         <a href="#how" class="hover:text-primary transition" data-i18n="nav.how">How it works</a>
-        <a href="#zakat" class="hover:text-primary transition" data-i18n="nav.zakat">Zakat</a>
-        <a href="#trust" class="hover:text-primary transition" data-i18n="nav.trust">Trust</a>
-        <a href="#verify" class="hover:text-primary transition" data-i18n="nav.verify">Verify</a>
-        <a href="explorer.html" class="hover:text-primary transition" data-i18n="nav.explorer">Explorer</a>
-        <a href="apply.html" class="hover:text-primary transition font-semibold">Need help</a>
-        <a href="donor/register.html" class="hover:text-primary transition font-semibold">Become donor</a>
-        <a href="donor/" class="hover:text-primary transition" data-i18n="nav.impact">My impact</a>
-        <a href="admin/" class="text-slate-400 hover:text-primary transition" data-i18n="nav.admin">Admin</a>
+        <a href="apply.html" class="hover:text-primary transition font-semibold" data-i18n="nav.needHelp">Need help</a>
+        <a href="donor/register.html" class="hover:text-primary transition font-semibold" data-i18n="nav.becomeDonor">Donate</a>
       </div>
       <div class="flex items-center gap-2 sm:gap-3">
-        <button id="lang-toggle" type="button" onclick="I18n.toggle()" class="text-sm font-semibold text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-blue-50 focus:ring-2 focus:ring-primary/40" aria-label="Switch language">اردو</button>
+        <label class="sr-only" for="lang-select">Language</label>
+        <select id="lang-select" onchange="I18n.setLang(this.value)" class="text-sm font-semibold text-primary border border-primary/30 px-2 py-1.5 rounded-lg bg-white focus:ring-2 focus:ring-primary/40" aria-label="Language">
+          <option value="en">EN</option>
+          <option value="ur">اردو</option>
+          <option value="ar">العربية</option>
+        </select>
+        <label class="sr-only" for="theme-select">Theme</label>
+        <select id="theme-select" onchange="DCTheme.set(this.value)" class="text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white text-slate-700 focus:ring-2 focus:ring-primary/40" aria-label="Theme">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+          <option value="emerald">Emerald</option>
+        </select>
         <button id="nav-auth-btn" type="button" onclick="openLogin()" class="text-sm font-medium text-slate-600 hover:text-primary px-3 py-2 focus:ring-2 focus:ring-primary/40 rounded-lg" data-i18n="nav.login">Login</button>
         <button type="button" onclick="openDonate(false)" class="bg-primary text-white px-4 sm:px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 focus:ring-2 focus:ring-offset-2 focus:ring-primary" data-i18n="nav.donate">Donate</button>
         <button id="mobile-menu-btn" type="button" onclick="toggleMobileNav()" class="md:hidden w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 focus:ring-2 focus:ring-primary/40" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
@@ -77,16 +99,12 @@
         </button>
       </div>
     </div>
-    <div id="mobile-nav" class="hidden md:hidden border-t border-slate-100 bg-white px-4 py-3 space-y-2 text-sm font-medium" role="menu" hidden>
+        <div id="mobile-nav" class="hidden md:hidden border-t border-slate-100 bg-white px-4 py-3 space-y-2 text-sm font-medium" role="menu" hidden>
       <a href="#cases" onclick="toggleMobileNav()" class="block py-2 text-slate-600" data-i18n="nav.cases">Cases</a>
       <a href="#how" onclick="toggleMobileNav()" class="block py-2 text-slate-600" data-i18n="nav.how">How it works</a>
-      <a href="#zakat" onclick="toggleMobileNav()" class="block py-2 text-slate-600" data-i18n="nav.zakat">Zakat</a>
-      <a href="#verify" onclick="toggleMobileNav()" class="block py-2 text-slate-600" data-i18n="nav.verify">Verify</a>
-      <a href="explorer.html" class="block py-2 text-slate-600" data-i18n="nav.explorer">Explorer</a>
-      <a href="apply.html" onclick="toggleMobileNav()" class="block py-2 text-primary font-semibold">Need help (Needy form)</a>
-      <a href="donor/register.html" onclick="toggleMobileNav()" class="block py-2 text-primary font-semibold">Become donor</a>
+      <a href="apply.html" onclick="toggleMobileNav()" class="block py-2 text-primary font-semibold" data-i18n="nav.needHelp">Need help</a>
+      <a href="donor/register.html" onclick="toggleMobileNav()" class="block py-2 text-primary font-semibold">Donate</a>
       <a href="donor/" class="block py-2 text-slate-600" data-i18n="nav.impact">My impact</a>
-      <a href="admin/" class="block py-2 text-slate-500" data-i18n="nav.admin">Admin</a>
     </div>
   </nav>
 
@@ -98,25 +116,25 @@
         <div>
           <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur px-3.5 py-1.5 rounded-full text-xs font-medium mb-6 border border-white/20">
             <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-            <span data-i18n="hero.live">Live · PKR 2.84B delivered with full audit trail</span>
+            <span data-i18n="hero.live">Direct to hospitals, schools & vendors</span>
           </div>
           <h1 id="hero-title" class="text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold leading-[1.15] tracking-tight mb-5">
-            <span data-i18n="hero.title1">Every rupee</span><br /><span class="text-cyan-200" data-i18n="hero.title2">tracked & proven</span>
+            <span data-i18n="hero.title1">Donors meet people in need.</span><br /><span class="text-cyan-200" data-i18n="hero.title2">Payment goes to the hospital or school.</span>
           </h1>
           <p class="text-base sm:text-lg text-blue-100/95 max-w-lg mb-8 leading-relaxed">
-            <span data-i18n="hero.sub">Zero middleman. Direct payments to hospitals, schools, and verified vendors. AI fraud checks. Zakat-compliant. Built for donor trust.</span>
+            <span data-i18n="hero.sub">Simple: someone needs help, someone gives help. Money is paid only to the relevant organization — never as personal cash.</span>
           </p>
           <!-- Two clear separate paths: Donor vs Needy -->
           <div class="grid sm:grid-cols-2 gap-3 mb-6 max-w-lg">
             <a href="#cases" onclick="document.getElementById('cases').scrollIntoView({behavior:'smooth'}); return false;"
                class="bg-white text-primary px-5 py-4 rounded-2xl font-bold text-sm hover:scale-[1.02] transition shadow-xl flex flex-col gap-1">
               <span class="flex items-center gap-2"><i class="fas fa-hand-holding-heart"></i> I want to donate</span>
-              <span class="text-xs font-medium text-slate-500">Browse verified cases · Donor form</span>
+              <span class="text-xs font-medium text-slate-500">See open cases · Donor form</span>
             </a>
             <a href="apply.html"
                class="bg-white/15 border border-white/40 text-white px-5 py-4 rounded-2xl font-bold text-sm hover:bg-white/25 transition flex flex-col gap-1">
               <span class="flex items-center gap-2"><i class="fas fa-user-injured"></i> I need help</span>
-              <span class="text-xs font-medium text-blue-100">Needy form · Apply for support</span>
+              <span class="text-xs font-medium text-blue-100">Apply for support</span>
             </a>
           </div>
           <div class="flex flex-wrap gap-3 mb-10">
@@ -160,7 +178,7 @@
                 </div>
               </div>
             </div>
-            <p class="text-[11px] text-blue-100/70 mt-4 text-center"><span data-i18n="hero.note">Funds never go to personal cash accounts</span></p>
+            <p class="text-[11px] text-blue-100/70 mt-4 text-center"><span data-i18n="hero.note">No personal cash — only organizations</span></p>
           </div>
         </div>
       </div>
@@ -170,11 +188,11 @@
   <!-- TRUST STRIP -->
   <section class="bg-white border-b border-slate-100">
     <div class="max-w-7xl mx-auto px-4 py-5 flex flex-wrap justify-center gap-x-10 gap-y-3 text-xs sm:text-sm text-slate-500 font-medium">
-      <span class="flex items-center gap-2"><i class="fas fa-shield-halved text-primary"></i> AI fraud screening</span>
-      <span class="flex items-center gap-2"><i class="fas fa-building-columns text-primary"></i> Direct vendor payouts</span>
-      <span class="flex items-center gap-2"><i class="fas fa-receipt text-primary"></i> Digital audit trail</span>
+      <span class="flex items-center gap-2"><i class="fas fa-shield-halved text-primary"></i> Verified cases</span>
+      <span class="flex items-center gap-2"><i class="fas fa-building-columns text-primary"></i> Pay organizations only</span>
+      <span class="flex items-center gap-2"><i class="fas fa-receipt text-primary"></i> Simple records</span>
       <span class="flex items-center gap-2"><i class="fas fa-moon text-primary"></i> Zakat compliant</span>
-      <span class="flex items-center gap-2"><i class="fas fa-lock text-primary"></i> PCI-ready payments</span>
+      <span class="flex items-center gap-2"><i class="fas fa-lock text-primary"></i> Local payment methods</span>
     </div>
   </section>
 
@@ -184,7 +202,8 @@
       <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
           <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight" data-i18n="cases.title">Verified cases</h2>
-          <p class="text-slate-500 mt-1 text-sm"><span data-i18n="cases.sub">Screened by AI + officers. Payments go only to registered institutions.</span></p>
+          <p class="text-slate-500 mt-1 text-sm" data-i18n="cases.sub">Pick a case. Your payment goes to the hospital, school, or vendor — not to personal cash.</p>
+          <p id="org-trust-note" class="text-xs text-slate-500 mt-2">Organizations are checked for registration and bank ownership before they can receive funds.</p>
         </div>
         <p id="cases-count" class="text-sm font-medium text-slate-400">—</p>
       </div>
@@ -216,27 +235,27 @@
   <section id="how" class="py-16 bg-white border-y border-slate-100">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <h2 class="text-2xl sm:text-3xl font-extrabold text-center mb-3" data-i18n="how.title">How DonationChain works</h2>
-      <p class="text-center text-slate-500 text-sm mb-12 max-w-xl mx-auto">Designed so donors never wonder where money went.</p>
+      <p class="text-center text-slate-500 text-sm mb-12 max-w-xl mx-auto">Three steps. No middleman cash.</p>
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div class="rounded-2xl border border-slate-100 p-6 hover:shadow-md transition">
           <div class="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold mb-4">1</div>
-          <h3 class="font-bold mb-2">Case verified</h3>
-          <p class="text-sm text-slate-500 leading-relaxed">CNIC checks, AI document scoring, officer review, and optional NGO field visit.</p>
+          <h3 class="font-bold mb-2">1. Need is listed</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">A person submits a need. We verify the case and the institution.</p>
         </div>
         <div class="rounded-2xl border border-slate-100 p-6 hover:shadow-md transition">
           <div class="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold mb-4">2</div>
-          <h3 class="font-bold mb-2">You donate</h3>
-          <p class="text-sm text-slate-500 leading-relaxed">JazzCash, EasyPaisa, Raast, or card. Amount linked to a specific case and category.</p>
+          <h3 class="font-bold mb-2">2. You give</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">A donor chooses a case and pays.</p>
         </div>
         <div class="rounded-2xl border border-slate-100 p-6 hover:shadow-md transition">
           <div class="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold mb-4">3</div>
-          <h3 class="font-bold mb-2">Vendor paid directly</h3>
-          <p class="text-sm text-slate-500 leading-relaxed">Hospital, school, or utility receives funds in their registered account — never cash-in-hand.</p>
+          <h3 class="font-bold mb-2">3. Organization is paid</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Payment goes straight to that hospital, school, or vendor account.</p>
         </div>
         <div class="rounded-2xl border border-slate-100 p-6 hover:shadow-md transition">
           <div class="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold mb-4">4</div>
-          <h3 class="font-bold mb-2">Proof in dashboard</h3>
-          <p class="text-sm text-slate-500 leading-relaxed">Invoice, delivery photo, or enrollment proof appears in your impact timeline within 48 hours.</p>
+          <h3 class="font-bold mb-2">Proof</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">You can see that the organization received the payment.</p>
         </div>
       </div>
     </div>
@@ -277,7 +296,7 @@
           </div>
           <label class="flex items-start gap-2 text-xs text-slate-300 mb-4 cursor-pointer">
             <input id="zakat-hawl-declare" type="checkbox" class="mt-0.5 rounded border-white/30 bg-white/10 text-cyan-500" />
-            <span>Main declare karta/karti hoon ke yeh wealth ek lunar year (Hawl) se Nisab se upar hai — Zakat wajib hai.</span>
+            <span>I declare that this wealth has been above the Nisab threshold for one full lunar year (Hawl), so Zakat is due.</span>
           </label>
           <button onclick="calcZakat()" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold py-3 rounded-xl text-sm transition" data-i18n="zakat.calc">Calculate Zakat (Nisab + Hawl)</button>
           <div id="zakat-result" class="hidden mt-6 border-t border-white/10 pt-6">
@@ -369,20 +388,22 @@
             <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-sm">D</div>
             DonationChain
           </div>
-          <p class="text-sm max-w-xs">Enterprise donation management with radical transparency for South Asia.</p>
+          <p class="text-sm max-w-xs">Connecting donors and seekers. Payments to organizations only.</p>
         </div>
         <div class="flex gap-12 text-sm">
           <div>
-            <p class="text-white font-semibold mb-2">Product</p>
-            <a href="#cases" class="block hover:text-white mb-1">Cases</a>
-            <a href="#zakat" class="block hover:text-white mb-1">Zakat</a>
-            <a href="donor/" class="block hover:text-white mb-1">Dashboard</a>
+            <p class="text-white font-semibold mb-2" data-i18n="footer.product">Product</p>
+            <a href="#cases" class="block hover:text-white mb-1" data-i18n="nav.cases">Cases</a>
+            <a href="#zakat" class="block hover:text-white mb-1" data-i18n="nav.zakat">Zakat</a>
+            <a href="#how" class="block hover:text-white mb-1" data-i18n="nav.how">How it works</a>
+            <a href="donor/" class="block hover:text-white mb-1" data-i18n="nav.impact">My impact</a>
           </div>
           <div>
-            <p class="text-white font-semibold mb-2">Platform</p>
-            <a href="admin/" class="block hover:text-white mb-1">Admin</a>
-            <a href="#how" class="block hover:text-white mb-1">How it works</a>
-            <a href="#trust" class="block hover:text-white mb-1">Trust</a>
+            <p class="text-white font-semibold mb-2" data-i18n="footer.more">More</p>
+            <a href="apply.html" class="block hover:text-white mb-1" data-i18n="nav.needHelp">Need help</a>
+            <a href="donor/register.html" class="block hover:text-white mb-1" data-i18n="nav.becomeDonor">Become a donor</a>
+            <a href="explorer.html" class="block hover:text-white mb-1" data-i18n="nav.explorer">Explorer</a>
+            <a href="admin/" class="block hover:text-white mb-1 text-slate-500" data-i18n="nav.admin">Admin</a>
           </div>
         </div>
       </div>
@@ -519,6 +540,7 @@
 
   <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl hidden z-50 max-w-sm text-sm font-medium"></div>
 
+  <script src="js/theme.js"></script>
   <script src="js/config.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/ledger.js"></script>
@@ -526,6 +548,9 @@
   <script src="js/contract-config.js"></script>
   <script src="js/contracts.js"></script>
   <script src="js/sms.js"></script>
+  <script src="js/organizations.js"></script>
+  <script src="js/privacy.js"></script>
+  <script src="js/rbac.js"></script>
   <script src="js/zakat.js"></script>
   <script src="js/app.js"></script>
   <script>
