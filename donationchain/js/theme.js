@@ -4,6 +4,7 @@
 const DCTheme = (() => {
   const KEY = "dc_theme";
   const THEMES = ["light", "dark", "emerald"];
+  const COLORS = { light: "#1A56DB", dark: "#0f172a", emerald: "#059669" };
 
   function get() {
     const t = localStorage.getItem(KEY) || "light";
@@ -16,6 +17,8 @@ const DCTheme = (() => {
     document.documentElement.setAttribute("data-theme", t);
     const sel = document.getElementById("theme-select");
     if (sel) sel.value = t;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", COLORS[t] || COLORS.light);
     window.dispatchEvent(new CustomEvent("dc:themechange", { detail: { theme: t } }));
     return t;
   }

@@ -3,6 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("dc_theme") || "light";
+        if (["light", "dark", "emerald"].indexOf(t) === -1) t = "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+
   <title>DonationChain — Donors, seekers, direct to organizations</title>
   <meta name="description" content="Pakistan's transparent donation platform. Connect donors and people in need. Payments go only to relevant organizations. AI fraud checks. Full audit trail." />
   <meta name="robots" content="index, follow" />
@@ -58,6 +68,7 @@
     /* RTL rules → css/rtl.css */
   </style>
   <link rel="stylesheet" href="css/rtl.css" />
+  <link rel="stylesheet" href="css/theme.css" />
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased">
 
