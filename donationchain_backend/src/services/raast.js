@@ -152,17 +152,94 @@ async function fetchRemoteStatus(providerRef) {
   };
 }
 
-function verifyWebhookSignature(rawBody, signatureHeader) {
-  if (!signatureHeader) return MODE !== 'live';
-  const expected = crypto
-    .createHmac('sha256', WEBHOOK_SECRET)
-    .update(typeof rawBody === 'string' ? rawBody : JSON.stringify(rawBody))
-    .digest('hex');
-  try {
-    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(String(signatureHeader)));
-  } catch {
-    return false;
+/**
+ * Verify Raast/PSP webhook HMAC-SHA256.
+ *
+ * Supported header formats:
+ * - raw hex digest
+ * - "sha256=<hex>"
+ * - Stripe-style "t=<unix>,v1=<hex>" (signed payload = `${t}.${rawBody}`)
+ *
+ * Live mode: signature required. Sandbox: optional (unsigned allowed).
+ * Replay: if timestamp present, reject if |now - t| > RAAST_WEBHOOK_TOLERANCE_SEC (default 300).
+ */
+function verifyWebhookSignature(rawBody, signatureHeader, opts) {
+  const o = opts || {};
+  const secret = o.secret || WEBHOOK_SECRET;
+  const toleranceSec = Number(o.toleranceSec ?? process.env.RAAST_WEBHOOK_TOLERANCE_SEC) || 300;
+  const requireSig = o.requireSignature != null ? o.requireSignature : isLive();
+
+  const header = signatureHeader != null ? String(signatureHeader).trim() : '';
+  if (!header) {
+    return { ok: !requireSig, reason: requireSig ? 'missing_signature' : 'sandbox_unsigned' };
   }
+
+  const payload =
+    Buffer.isBuffer(rawBody)
+      ? rawBody
+      : typeof rawBody === 'string'
+        ? Buffer.from(rawBody, 'utf8')
+        : Buffer.from(JSON.stringify(rawBody), 'utf8');
+
+  let timestamp = null;
+  let providedHex = header;
+
+  if (/^sha256=/i.test(header)) {
+    providedHex = header.replace(/^sha256=/i, '').trim();
+  } else if (header.includes('t=') && header.includes('v1=')) {
+    const parts = header.split(',').map((p) => p.trim());
+    for (const p of parts) {
+      if (p.startsWith('t=')) timestamp = p.slice(2);
+      if (p.startsWith('v1=')) providedHex = p.slice(3);
+    }
+  }
+
+  providedHex = providedHex.replace(/^0x/i, '').toLowerCase();
+  if (!/^[0-9a-f]{32,128}$/.test(providedHex)) {
+    return { ok: false, reason: 'malformed_signature' };
+  }
+
+  if (timestamp != null) {
+    const ts = Number(timestamp);
+    if (!Number.isFinite(ts)) return { ok: false, reason: 'invalid_timestamp' };
+    const age = Math.abs(Math.floor(Date.now() / 1000) - ts);
+    if (age > toleranceSec) return { ok: false, reason: 'timestamp_expired', age };
+  }
+
+  const signedPayload =
+    timestamp != null
+      ? Buffer.concat([Buffer.from(String(timestamp) + '.', 'utf8'), payload])
+      : payload;
+
+  const expectedHex = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
+
+  try {
+    const a = Buffer.from(expectedHex, 'utf8');
+    const b = Buffer.from(providedHex, 'utf8');
+    if (a.length !== b.length) return { ok: false, reason: 'length_mismatch' };
+    const match = crypto.timingSafeEqual(a, b);
+    return match ? { ok: true, reason: 'valid' } : { ok: false, reason: 'mismatch' };
+  } catch {
+    return { ok: false, reason: 'compare_error' };
+  }
+}
+
+/** Sign a body the same way we verify (for tests / sandbox simulator). */
+function signWebhookPayload(rawBody, secret, timestamp) {
+  const s = secret || WEBHOOK_SECRET;
+  const payload =
+    Buffer.isBuffer(rawBody)
+      ? rawBody
+      : typeof rawBody === 'string'
+        ? Buffer.from(rawBody, 'utf8')
+        : Buffer.from(JSON.stringify(rawBody), 'utf8');
+  if (timestamp != null) {
+    const signed = Buffer.concat([Buffer.from(String(timestamp) + '.', 'utf8'), payload]);
+    const hex = crypto.createHmac('sha256', s).update(signed).digest('hex');
+    return `t=${timestamp},v1=${hex}`;
+  }
+  const hex = crypto.createHmac('sha256', s).update(payload).digest('hex');
+  return `sha256=${hex}`;
 }
 
 function configPublic() {
@@ -181,9 +258,11 @@ module.exports = {
   initiateTransfer,
   fetchRemoteStatus,
   verifyWebhookSignature,
+  signWebhookPayload,
   configPublic,
   isLive,
   mapLiveStatus,
   MERCHANT_IBAN,
   SETTLE_MS,
+  WEBHOOK_SECRET,
 };

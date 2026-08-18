@@ -22,7 +22,17 @@ const PORT = process.env.PORT || 4000;
 
 app.use(helmet());
 app.use(cors({ origin: true }));
-app.use(express.json({ limit: '1mb' }));
+// Preserve raw body for Raast webhook HMAC verification
+app.use(
+  express.json({
+    limit: '1mb',
+    verify: (req, _res, buf) => {
+      if (req.originalUrl && req.originalUrl.indexOf('/api/payments/webhook/') === 0) {
+        req.rawBody = buf;
+      }
+    },
+  })
+);
 app.use(morgan('dev'));
 
 // Health

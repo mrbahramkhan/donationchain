@@ -307,15 +307,26 @@ router.get('/:id', (req, res) => {
   res.json({ ok: true, payment: publicPayment(p) });
 });
 
-router.post('/webhook/raast', express.json(), (req, res) => {
-  const sig = req.headers['x-raast-signature'] || req.headers['x-signature'];
-  if (!raast.verifyWebhookSignature(req.body, sig)) {
-    return res.status(401).json({ ok: false, error: 'invalid signature' });
+router.post('/webhook/raast', (req, res) => {
+  const sig =
+    req.headers['x-raast-signature'] ||
+    req.headers['x-signature'] ||
+    req.headers['x-hub-signature-256'] ||
+    '';
+  // Prefer exact raw bytes used for HMAC; fall back to re-serialized JSON
+  const raw = req.rawBody || Buffer.from(JSON.stringify(req.body || {}), 'utf8');
+  const verified = raast.verifyWebhookSignature(raw, sig);
+  if (!verified.ok) {
+    return res.status(401).json({
+      ok: false,
+      error: 'invalid signature',
+      reason: verified.reason,
+    });
   }
   const body = req.body || {};
   const providerRef = body.transactionId || body.rrn || body.endToEndId || body.providerRef;
   const paymentId = body.paymentId || body.merchantReference || body.customerReference;
-  let p = paymentId ? store.get(paymentId) : null;
+  let p = paymentId ? store.get(String(paymentId)) : null;
   if (!p && providerRef) {
     p = store.list(200).find((x) => x.providerRef === providerRef) || null;
   }
@@ -329,8 +340,29 @@ router.post('/webhook/raast', express.json(), (req, res) => {
     settledAt: status === 'settled' ? new Date().toISOString() : p.settledAt,
     failureReason: status === 'failed' ? body.reason || body.message || 'Declined' : null,
     webhookAt: new Date().toISOString(),
+    webhookVerified: true,
   });
-  res.json({ ok: true, id: p.id, status });
+  res.json({ ok: true, id: p.id, status, signature: verified.reason });
+});
+
+/** Sandbox helper: sign a sample payload (dev only) */
+router.post('/webhook/raast/sign-test', (req, res) => {
+  if (raast.isLive()) {
+    return res.status(403).json({ ok: false, error: 'disabled in live mode' });
+  }
+  const body = req.body || { status: 'settled', paymentId: 'demo' };
+  const raw = JSON.stringify(body);
+  const ts = Math.floor(Date.now() / 1000);
+  res.json({
+    ok: true,
+    body,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Raast-Signature': raast.signWebhookPayload(raw, null, ts),
+      'X-Raast-Signature-Simple': raast.signWebhookPayload(raw),
+    },
+    note: 'POST the same body + X-Raast-Signature to /api/payments/webhook/raast',
+  });
 });
 
 router.get('/', (_req, res) => {
