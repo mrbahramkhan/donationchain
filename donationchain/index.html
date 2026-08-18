@@ -628,6 +628,7 @@
   <script src="js/rbac.js"></script>
   <script src="js/zakat.js"></script>
   <script src="js/bills.js"></script>
+  <script src="js/payments.js"></script>
   <script src="js/app.js"></script>
   <script>
     function openBillPay() {
@@ -689,21 +690,50 @@
       err.classList.add("hidden");
       ok.classList.add("hidden");
       const methodEl = document.querySelector('input[name="billmethod"]:checked');
-      const res = await DCBills.pay({
-        providerId: document.getElementById("bill-provider").value,
-        reference: document.getElementById("bill-ref").value,
-        amount: Number(document.getElementById("bill-amount").value),
-        method: methodEl ? methodEl.value : "raast",
-      });
-      if (!res.ok) {
-        err.textContent = res.error || "Payment failed";
+      const method = methodEl ? methodEl.value : "raast";
+      const providerId = document.getElementById("bill-provider").value;
+      const reference = document.getElementById("bill-ref").value;
+      const amount = Number(document.getElementById("bill-amount").value);
+      const pname = (window.DCBills && DCBills.getProvider(providerId))
+        ? DCBills.getProvider(providerId).name
+        : providerId;
+      try {
+        if (window.DCPayments) {
+          ok.textContent = "Initiating " + method.toUpperCase() + "…";
+          ok.classList.remove("hidden");
+          const result = await DCPayments.payAndWait(
+            {
+              amount,
+              method,
+              purpose: "bill",
+              vendorName: pname,
+              billReference: reference,
+              caseTitle: "Utility bill " + reference,
+              idempotencyKey: "bill-" + providerId + "-" + reference + "-" + amount,
+            },
+            {
+              onUpdate: (s) => {
+                ok.textContent = "Status: " + (s.status || "…");
+              },
+            }
+          );
+          await DCBills.pay({ providerId, reference, amount, method });
+          ok.textContent =
+            "Settled " + (result.payment.id || "") + " → " + pname +
+            (result.status.providerRef ? " · " + result.status.providerRef : "");
+          if (typeof showToast === "function") showToast("Bill paid via " + method);
+        } else {
+          const res = await DCBills.pay({ providerId, reference, amount, method });
+          if (!res.ok) throw new Error(res.error || "Payment failed");
+          ok.textContent = "Paid " + res.payment.id + " → " + res.payment.providerName;
+          if (typeof showToast === "function") showToast("Bill paid to utility");
+        }
+        ok.classList.remove("hidden");
+      } catch (e) {
+        err.textContent = e.message || "Payment failed";
         err.classList.remove("hidden");
-        return;
+        ok.classList.add("hidden");
       }
-      ok.textContent = "Paid " + res.payment.id + " → " + res.payment.providerName;
-      ok.classList.remove("hidden");
-      if (typeof showToast === "function") showToast("Bill paid to utility");
-      if (typeof loadLiveStats === "function") try { loadLiveStats(); } catch (_) {}
     }
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeBillPay();

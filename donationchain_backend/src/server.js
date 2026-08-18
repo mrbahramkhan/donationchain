@@ -13,6 +13,7 @@ const zakatRouter = require('./routes/zakat');
 const organizationsRouter = require('./routes/organizations');
 const shariahRouter = require('./routes/shariah');
 const billsRouter = require('./routes/bills');
+const paymentsRouter = require('./routes/payments');
 const { requireAuth } = require('./middleware/auth');
 const { initFirebase } = require('./services/fcm');
 
@@ -45,6 +46,7 @@ app.use('/api/zakat', zakatRouter);
 app.use('/api/organizations', organizationsRouter);
 app.use('/api/shariah', shariahRouter);
 app.use('/api/bills', billsRouter);
+app.use('/api/payments', paymentsRouter);
 
 // Simple in-memory token registry (demo — replace with DB)
 const tokenStore = new Map(); // userId -> token
@@ -85,4 +87,8 @@ app.listen(PORT, () => {
   console.log(`  Zakat config:  GET  /api/zakat/config`);
   console.log(`  Zakat calc:    POST /api/zakat/calculate`);
   console.log(`  Organizations: GET  /api/organizations`);
+  console.log(`  Payments:      POST /api/payments/initiate`);
+  console.log(`  Pay status:    GET  /api/payments/:id/status`);
+  console.log(`  Pay SSE:       GET  /api/payments/stream/:id`);
+  console.log(`  Raast webhook: POST /api/payments/webhook/raast`);
 });

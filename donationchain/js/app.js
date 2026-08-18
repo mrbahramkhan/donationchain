@@ -229,11 +229,12 @@ function setQuickAmount(v) {
   if (el) el.value = v;
 }
 
-function processPayment() {
+async function processPayment() {
   const amountEl = document.getElementById("donate-amount");
   const err = document.getElementById("donate-error");
   const amount = Number(amountEl?.value || 0);
-  const method = document.querySelector('input[name="paymethod"]:checked')?.value || "jazzcash";
+  let method = document.querySelector('input[name="paymethod"]:checked')?.value || "jazzcash";
+  if (method === "stripe") method = "card";
   const anon = document.getElementById("anonymous")?.checked;
 
   const dcfg = window.DCConfig ? DCConfig.load().donations : { minAmount: 100, maxAmount: 500000 };
@@ -252,28 +253,74 @@ function processPayment() {
   const btn = document.getElementById("pay-btn");
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing…';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Initiating…';
   }
 
-  setTimeout(async () => {
-    const receiptId = "DC-" + Date.now().toString(36).toUpperCase();
+  const caseTitle = DC.selectedCase ? DC.selectedCase.title : "General / Zakat";
+  const vendor = DC.selectedCase?.vendor || "Platform Pool";
+  const isZakatFlow = !DC.selectedCase || /zakat/i.test(String(caseTitle || ""));
+
+  try {
+    let paymentId = null;
+    let providerRef = null;
+    let payStatus = "completed";
+    let mode = "local";
+
+    if (window.DCPayments) {
+      const result = await DCPayments.payAndWait(
+        {
+          amount,
+          method,
+          caseId: DC.selectedCase?.id || null,
+          caseTitle,
+          vendorName: vendor,
+          purpose: isZakatFlow ? "zakat" : "donation",
+          anonymous: !!anon,
+          idempotencyKey: "don-" + Date.now() + "-" + amount,
+        },
+        {
+          timeoutMs: 40000,
+          onUpdate: (s) => {
+            if (!btn) return;
+            const st = s.status || "pending";
+            btn.innerHTML =
+              '<i class="fas fa-spinner fa-spin mr-2"></i> ' +
+              (st === "pending"
+                ? "Raast pending…"
+                : st === "processing"
+                  ? "Settling…"
+                  : st === "settled"
+                    ? "Confirmed"
+                    : st);
+          },
+        }
+      );
+      paymentId = result.payment.id || result.status.id;
+      providerRef = result.payment.providerRef || result.status.providerRef;
+      payStatus = result.status.status || "settled";
+      mode = result.payment.mode || "sandbox";
+    }
+
+    const receiptId = paymentId || "DC-" + Date.now().toString(36).toUpperCase();
     const donations = JSON.parse(localStorage.getItem("dc_donations") || "[]");
     const record = {
       id: receiptId,
       amount,
       method,
-      case: DC.selectedCase ? DC.selectedCase.title : "General / Zakat",
+      case: caseTitle,
       caseId: DC.selectedCase?.id || null,
       city: DC.selectedCase?.city || "—",
-      vendor: DC.selectedCase?.vendor || "Platform Pool",
+      vendor,
       anonymous: !!anon,
       date: new Date().toISOString(),
-      status: "completed",
+      status: payStatus === "settled" || payStatus === "completed" ? "completed" : payStatus,
       proof: "Vendor proof within 48 hours",
-      platformFeePercent: (window.DCConfig ? DCConfig.load().donations.platformFeePercent : 0) || 0
+      platformFeePercent: (window.DCConfig ? DCConfig.load().donations.platformFeePercent : 0) || 0,
+      providerRef,
+      paymentMode: mode,
+      realtime: !!window.DCPayments,
     };
 
-    // Anchor on verification ledger (hash chain)
     try {
       if (window.Ledger) {
         const block = await Ledger.appendDonation(record);
@@ -281,7 +328,6 @@ function processPayment() {
         record.blockIndex = block.index;
         record.prevHash = block.prevHash;
       }
-      // Smart contract: simulate on-chain anchor until registry is deployed
       if (window.DCContract) {
         if (DCContract.isConfigured()) {
           record.onChainPending = true;
@@ -289,7 +335,6 @@ function processPayment() {
           DCContract.simulateAnchor(record);
         }
       }
-      // Rebuild Merkle batch so receipt gets an inclusion proof
       try {
         if (window.Merkle) await Merkle.rebuildFromDonations();
       } catch (me) {
@@ -299,14 +344,11 @@ function processPayment() {
       console.warn("Ledger/contract anchor failed", e);
     }
 
-    // Tag Zakat distributions (opened via openDonate(true) → no selected case title from marketplace)
-    const isZakatFlow = !DC.selectedCase || /zakat/i.test(String(record.case || ""));
     if (isZakatFlow) record.category = "zakat";
 
     donations.unshift(record);
     localStorage.setItem("dc_donations", JSON.stringify(donations));
 
-    // Hawl tracker: count Zakat payments toward remaining obligation
     try {
       if (isZakatFlow && window.DCZakat) {
         DCZakat.recordPayment(amount, receiptId);
@@ -316,20 +358,13 @@ function processPayment() {
     }
 
     if (DC.selectedCase) {
-      const c = DC.cases.find(x => x.id === DC.selectedCase.id);
+      const c = DC.cases.find((x) => x.id === DC.selectedCase.id);
       if (c) c.raised = Math.min(c.amount, c.raised + amount);
       renderCases();
     }
 
-    closeDonate();
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = 'Pay Securely <i class="fas fa-lock ml-2 text-sm"></i>';
-    }
-    showReceipt(record);
-    if (window.DCSMS && record) {
+    if (window.DCSMS) {
       try {
-        // Privacy: never attach seeker phone from public case/donation records
         let donorPhone = "";
         try {
           const sess = JSON.parse(sessionStorage.getItem("dc_donor_session") || "null");
@@ -341,11 +376,27 @@ function processPayment() {
           beneficiaryPhone: undefined,
           amount: record.amount,
           receiptId: record.id,
-          caseTitle: record.case || record.caseTitle || "",
+          caseTitle: record.case || "",
         });
       } catch (_) {}
     }
-  }, 1400);
+
+    closeDonate();
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = 'Pay Securely <i class="fas fa-lock ml-2 text-sm"></i>';
+    }
+    showReceipt(record);
+  } catch (e) {
+    if (err) {
+      err.textContent = e.message || "Payment failed";
+      err.classList.remove("hidden");
+    }
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = 'Pay Securely <i class="fas fa-lock ml-2 text-sm"></i>';
+    }
+  }
 }
 
 function showReceipt(r) {
