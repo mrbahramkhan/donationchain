@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "test": "node --test test/**/*.test.js",
     "test:fcm": "node scripts/test-fcm.js",
     "check": "find src -name '*.js' -print0 | xargs -0 -n1 node --check",
     "health": "curl -sf http://127.0.0.1:${PORT:-4000}/health"

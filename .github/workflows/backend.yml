@@ -86,6 +86,8 @@ jobs:
         run: |
           set -euo pipefail
           required=(
+            src/app.js
+            src/health.js
             src/server.js
             src/middleware/auth.js
             src/routes/auth.js
@@ -98,6 +100,7 @@ jobs:
             src/services/raast.js
             src/services/ledger.js
             src/services/merkle.js
+            test/health.test.js
           )
           for f in "${required[@]}"; do
             if [[ ! -f "$f" ]]; then
@@ -106,6 +109,14 @@ jobs:
             fi
             echo "  ✓ $f"
           done
+
+      - name: Unit tests (health endpoint)
+        working-directory: ${{ env.BACKEND_DIR }}
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-test-secret-not-for-prod
+          SMS_PROVIDER: mock
+        run: npm test
 
       - name: Start server + health smoke
         working-directory: ${{ env.BACKEND_DIR }}
