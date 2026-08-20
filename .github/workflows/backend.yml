@@ -101,6 +101,8 @@ jobs:
             src/services/ledger.js
             src/services/merkle.js
             test/health.test.js
+            test/helpers/mocks.js
+            test/services/mocks.test.js
           )
           for f in "${required[@]}"; do
             if [[ ! -f "$f" ]]; then
