@@ -1,0 +1,1119 @@
+openapi: 3.0.3
+info:
+  title: DonationChain — Case Verification Workflow API
+  description: |
+    OpenAPI specification for the Case Verification Workflow, Marketplace connection,
+    and related endpoints of DonationChain (International / Multi-tenant).
+
+    **Base URL:** `/api/v1`
+
+    All endpoints (except public marketplace listing) require a valid JWT Bearer token.
+    Tenant context (`country_code`) is taken from the JWT claims.
+  version: 1.0.0
+  contact:
+    name: DonationChain Platform
+servers:
+  - url: https://api.donationchain.org/api/v1
+    description: Production
+  - url: http://localhost:3000/api/v1
+    description: Local development
+
+tags:
+  - name: Cases
+    description: Case lifecycle (create, read, update)
+  - name: Verification
+    description: AI screen, officer review, field verification, admin approval
+  - name: Marketplace
+    description: Public verified cases + donor interest
+  - name: Messages
+    description: Platform-mediated messaging between matched parties
+  - name: Proof
+    description: Delivery / treatment proof upload and closure
+  - name: Admin
+    description: Queue, stats, assignment, overrides
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    CaseId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Case ID
+
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        reason:
+          type: string
+        details:
+          type: object
+
+    CaseStatus:
+      type: string
+      enum:
+        - submitted
+        - ai_passed
+        - ai_review
+        - ai_rejected
+        - needs_info
+        - officer_approved
+        - field_assigned
+        - field_verified
+        - approved
+        - live
+        - partially_funded
+        - funded
+        - proof_uploaded
+        - closed
+        - rejected
+        - cancelled
+
+    Location:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: float
+        lng:
+          type: number
+          format: float
+        city:
+          type: string
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+
+    CaseCreate:
+      type: object
+      required:
+        - category
+        - title
+        - amount_requested
+        - currency
+      properties:
+        category:
+          type: string
+          enum: [medical, education, food, utility, shelter, disaster, zakat, other]
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        amount_requested:
+          type: number
+          format: double
+          minimum: 1
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          example: PKR
+        documents:
+          type: array
+          items:
+            type: string
+            format: uuid
+        location:
+          $ref: '#/components/schemas/Location'
+        urgency:
+          type: string
+          enum: [low, medium, high, critical]
+          default: medium
+
+    Case:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        case_number:
+          type: string
+          example: DC-2026-000142
+        status:
+          $ref: '#/components/schemas/CaseStatus'
+        category:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        amount_requested:
+          type: number
+        amount_approved:
+          type: number
+          nullable: true
+        amount_funded:
+          type: number
+          default: 0
+        currency:
+          type: string
+        country_code:
+          type: string
+        seeker_id:
+          type: string
+          format: uuid
+        ai_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+        urgency:
+          type: string
+        location:
+          $ref: '#/components/schemas/Location'
+        verification_badges:
+          type: array
+          items:
+            type: string
+            enum: [id_verified, home_visit, ngo_verified, ai_passed]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        live_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    TimelineEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/CaseStatus'
+        actor_id:
+          type: string
+          format: uuid
+        actor_role:
+          type: string
+        notes:
+          type: string
+        metadata:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+
+    ReviewRequest:
+      type: object
+      required:
+        - decision
+      properties:
+        decision:
+          type: string
+          enum: [approve, reject, needs_info]
+        notes:
+          type: string
+          maxLength: 2000
+        requested_documents:
+          type: array
+          items:
+            type: string
+          description: Required only when decision = needs_info
+
+    AdminApproveRequest:
+      type: object
+      required:
+        - approved_amount
+        - currency
+      properties:
+        approved_amount:
+          type: number
+          format: double
+          minimum: 1
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        notes:
+          type: string
+
+    InterestRequest:
+      type: object
+      properties:
+        message:
+          type: string
+          maxLength: 500
+        anonymous:
+          type: boolean
+          default: false
+
+    Interest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        case_id:
+          type: string
+          format: uuid
+        donor_id:
+          type: string
+          format: uuid
+        donor_display_name:
+          type: string
+        message:
+          type: string
+        anonymous:
+          type: boolean
+        status:
+          type: string
+          enum: [interested, committed, withdrawn]
+        created_at:
+          type: string
+          format: date-time
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        case_id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        sender_role:
+          type: string
+        body:
+          type: string
+        is_system:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    MessageCreate:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
+
+    ProofUpload:
+      type: object
+      required:
+        - proof_type
+        - document_ids
+      properties:
+        proof_type:
+          type: string
+          enum: [delivery_photo, invoice, medical_report, enrollment_proof, other]
+        document_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        notes:
+          type: string
+        geo:
+          $ref: '#/components/schemas/Location'
+
+    AiResult:
+      type: object
+      properties:
+        case_id:
+          type: string
+          format: uuid
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        decision:
+          type: string
+          enum: [ai_passed, ai_review, ai_rejected]
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              severity:
+                type: string
+                enum: [info, warning, critical]
+              message:
+                type: string
+        checked_at:
+          type: string
+          format: date-time
+
+    QueueItem:
+      type: object
+      properties:
+        case:
+          $ref: '#/components/schemas/Case'
+        waiting_since:
+          type: string
+          format: date-time
+        priority:
+          type: string
+          enum: [low, normal, high, critical]
+        assigned_officer_id:
+          type: string
+          format: uuid
+          nullable: true
+
+security:
+  - BearerAuth: []
+
+paths:
+  /cases:
+    post:
+      tags: [Cases]
+      summary: Submit a new case (Stage 1)
+      operationId: createCase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseCreate'
+      responses:
+        '201':
+          description: Case created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (only seeker role)
+
+    get:
+      tags: [Cases]
+      summary: List cases (filtered)
+      operationId: listCases
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Comma-separated status values
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: country
+          in: query
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+        - name: urgency
+          in: query
+          schema:
+            type: string
+        - name: seeker_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Paginated list of cases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Case'
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  total:
+                    type: integer
+
+  /cases/{id}:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    get:
+      tags: [Cases]
+      summary: Get case by ID
+      operationId: getCase
+      responses:
+        '200':
+          description: Case details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '404':
+          description: Case not found
+
+    patch:
+      tags: [Cases]
+      summary: Update case (limited fields)
+      operationId: updateCase
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                urgency:
+                  type: string
+      responses:
+        '200':
+          description: Updated case
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '403':
+          description: Forbidden
+
+  /cases/{id}/timeline:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    get:
+      tags: [Cases]
+      summary: Get full status timeline
+      operationId: getCaseTimeline
+      responses:
+        '200':
+          description: Timeline events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  case_id:
+                    type: string
+                    format: uuid
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TimelineEvent'
+
+  /cases/{id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Cases]
+      summary: Cancel own case (if not funded)
+      operationId: cancelCase
+      responses:
+        '200':
+          description: Case cancelled
+        '400':
+          description: Cannot cancel (already funded or closed)
+
+  /cases/{id}/ai-screen:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Verification]
+      summary: Trigger / re-run AI pre-screen (Stage 2)
+      operationId: runAiScreen
+      responses:
+        '200':
+          description: AI result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiResult'
+
+  /cases/{id}/ai-result:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    get:
+      tags: [Verification]
+      summary: Get latest AI screening result
+      operationId: getAiResult
+      responses:
+        '200':
+          description: AI result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiResult'
+        '404':
+          description: No AI result yet
+
+  /cases/{id}/review:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Verification]
+      summary: Officer review decision (Stage 3)
+      operationId: officerReview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+      responses:
+        '200':
+          description: Review recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '400':
+          description: Invalid decision or state
+
+  /cases/{id}/request-info:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Verification]
+      summary: Request additional information from beneficiary
+      operationId: requestInfo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message, requested_documents]
+              properties:
+                message:
+                  type: string
+                requested_documents:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Request sent
+
+  /cases/{id}/submit-info:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Verification]
+      summary: Beneficiary submits additional information
+      operationId: submitInfo
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                document_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Info submitted
+
+  /cases/{id}/assign-field:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Verification]
+      summary: Assign volunteer or NGO for field verification (Stage 4)
+      operationId: assignField
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assignee_id:
+                  type: string
+                  format: uuid
+                due_by:
+                  type: string
+                  format: date-time
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Field visit assigned
+
+  /cases/{id}/field-verify:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Verification]
+      summary: Submit field verification result
+      operationId: fieldVerify
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  type: string
+                  enum: [verified, not_verified]
+                notes:
+                  type: string
+                document_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                geo:
+                  $ref: '#/components/schemas/Location'
+      responses:
+        '200':
+          description: Field verification recorded
+
+  /cases/{id}/admin-approve:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Verification]
+      summary: Final admin approval — case goes live (Stage 5)
+      operationId: adminApprove
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminApproveRequest'
+      responses:
+        '200':
+          description: Case approved and live
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+
+  /cases/{id}/admin-reject:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Verification]
+      summary: Final admin rejection
+      operationId: adminReject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 2000
+      responses:
+        '200':
+          description: Case rejected
+
+  /cases/{id}/override:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Admin]
+      summary: Super Admin force status change
+      operationId: overrideStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, reason]
+              properties:
+                status:
+                  $ref: '#/components/schemas/CaseStatus'
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Status overridden
+
+  /cases/marketplace:
+    get:
+      tags: [Marketplace]
+      summary: List verified live cases (public marketplace)
+      operationId: listMarketplace
+      security: []          # can be public or lightly authenticated
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: country
+          in: query
+          schema:
+            type: string
+        - name: urgency
+          in: query
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Full-text search
+      responses:
+        '200':
+          description: Live cases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Case'
+                  page:
+                    type: integer
+                  total:
+                    type: integer
+
+  /cases/{id}/interest:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Marketplace]
+      summary: Donor expresses interest / Support this case
+      operationId: expressInterest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InterestRequest'
+      responses:
+        '201':
+          description: Interest recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Interest'
+        '409':
+          description: Already interested
+
+    delete:
+      tags: [Marketplace]
+      summary: Withdraw interest
+      operationId: withdrawInterest
+      responses:
+        '200':
+          description: Interest withdrawn
+
+  /cases/{id}/interests:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    get:
+      tags: [Marketplace]
+      summary: List interests on a case
+      operationId: listCaseInterests
+      responses:
+        '200':
+          description: List of interests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Interest'
+
+  /donors/me/interests:
+    get:
+      tags: [Marketplace]
+      summary: Current donor's supported cases
+      operationId: myInterests
+      responses:
+        '200':
+          description: My interests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Interest'
+
+  /cases/{id}/messages:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    get:
+      tags: [Messages]
+      summary: Get platform messages for a case
+      operationId: getMessages
+      responses:
+        '200':
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+
+    post:
+      tags: [Messages]
+      summary: Send a platform message
+      operationId: sendMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageCreate'
+      responses:
+        '201':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+
+  /cases/{id}/messages/read:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Messages]
+      summary: Mark messages as read
+      operationId: markMessagesRead
+      responses:
+        '200':
+          description: Marked as read
+
+  /cases/{id}/proof:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Proof]
+      summary: Upload delivery / treatment proof
+      operationId: uploadProof
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProofUpload'
+      responses:
+        '201':
+          description: Proof uploaded
+
+    get:
+      tags: [Proof]
+      summary: Get proof for a case
+      operationId: getProof
+      responses:
+        '200':
+          description: Proof details
+
+  /cases/{id}/close:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Proof]
+      summary: Close case (manual)
+      operationId: closeCase
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Case closed
+
+  /cases/{id}/reopen:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Admin]
+      summary: Reopen a closed case (Super Admin only)
+      operationId: reopenCase
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Case reopened
+
+  /verification/queue:
+    get:
+      tags: [Admin]
+      summary: Verification queue for officers
+      operationId: getVerificationQueue
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: status
+          in: query
+          schema:
+            type: string
+            default: ai_review,needs_info,officer_approved
+      responses:
+        '200':
+          description: Queue items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QueueItem'
+                  total:
+                    type: integer
+
+  /verification/stats:
+    get:
+      tags: [Admin]
+      summary: Verification SLA and performance stats
+      operationId: getVerificationStats
+      responses:
+        '200':
+          description: Stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending_by_stage:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                  avg_time_hours:
+                    type: object
+                    additionalProperties:
+                      type: number
+                  overdue_count:
+                    type: integer
+
+  /verification/assign:
+    post:
+      tags: [Admin]
+      summary: Assign officer to case(s)
+      operationId: assignOfficer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [case_ids, officer_id]
+              properties:
+                case_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                officer_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Assigned
+
+  /admin/cases:
+    get:
+      tags: [Admin]
+      summary: Full admin case list
+      operationId: adminListCases
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: country
+          in: query
+          schema:
+            type: string
+        - name: officer_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Admin case list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Case'
+                  total:
+                    type: integer
