@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log*
+.env
+.env.*
+!.env.example
+config/serviceAccountKey.json
+*.log
+.git
+.gitignore
+README.md
+TWILIO_SMS_SETUP.md
+scripts
+data/*.json.bak
+**/.DS_Store

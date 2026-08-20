@@ -1,0 +1,236 @@
+# Backend CI — install, syntax, smoke health, Docker build
+# Does NOT deploy (no hosting secrets yet). Deploy job is manual template.
+
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "donationchain_backend/**"
+      - ".github/workflows/backend.yml"
+  push:
+    branches: [main, master]
+    paths:
+      - "donationchain_backend/**"
+      - ".github/workflows/backend.yml"
+  workflow_dispatch:
+    inputs:
+      run_docker:
+        description: "Also build Docker image"
+        type: boolean
+        default: true
+
+concurrency:
+  group: backend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20"
+  BACKEND_DIR: donationchain_backend
+
+jobs:
+  # ── Syntax + dependency install + smoke test ──────────────────────────
+  test:
+    name: Install + Syntax + Health
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            donationchain_backend
+          sparse-checkout-cone-mode: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ${{ env.BACKEND_DIR }}/package.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          set -euo pipefail
+          if [ -f package-lock.json ]; then
+            npm ci --no-fund --no-audit
+          else
+            npm install --no-fund --no-audit
+          fi
+
+      - name: Syntax-check all JS
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r -d '' f; do
+            node --check "$f"
+            echo "OK $f"
+            count=$((count + 1))
+          done < <(find src -name '*.js' -print0)
+          if [[ "$count" -eq 0 ]]; then
+            echo "::error::No backend JS under src/"
+            exit 1
+          fi
+          echo "Checked $count files"
+
+      - name: Required routes & services present
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          set -euo pipefail
+          required=(
+            src/server.js
+            src/middleware/auth.js
+            src/routes/auth.js
+            src/routes/cases.js
+            src/routes/payments.js
+            src/routes/zakat.js
+            src/routes/shariah.js
+            src/routes/notifications.js
+            src/services/fcm.js
+            src/services/raast.js
+            src/services/ledger.js
+            src/services/merkle.js
+          )
+          for f in "${required[@]}"; do
+            if [[ ! -f "$f" ]]; then
+              echo "::error::Missing $f"
+              exit 1
+            fi
+            echo "  ✓ $f"
+          done
+
+      - name: Start server + health smoke
+        working-directory: ${{ env.BACKEND_DIR }}
+        env:
+          PORT: 4000
+          NODE_ENV: test
+          JWT_SECRET: ci-test-secret-not-for-prod
+          SMS_PROVIDER: mock
+          # No Firebase key → FCM stays in mock mode
+        run: |
+          set -euo pipefail
+          node src/server.js &
+          PID=$!
+          echo $PID > /tmp/backend.pid
+          trap 'kill $PID 2>/dev/null || true' EXIT
+
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:4000/health >/tmp/health.json; then
+              echo "Health OK (${i}s)"
+              cat /tmp/health.json
+              # Basic shape check
+              grep -q '"ok":true' /tmp/health.json || grep -q '"ok": true' /tmp/health.json
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Server failed to become healthy"
+          exit 1
+
+      - name: npm audit (non-blocking)
+        working-directory: ${{ env.BACKEND_DIR }}
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high || true
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Backend CI"
+            echo "| Item | Value |"
+            echo "|------|-------|"
+            echo "| Node | ${{ env.NODE_VERSION }} |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| Trigger | ${{ github.event_name }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Docker image build (validates Dockerfile) ─────────────────────────
+  docker:
+    name: Docker build
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' && inputs.run_docker == true ||
+      github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            donationchain_backend
+          sparse-checkout-cone-mode: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.BACKEND_DIR }}
+          file: ${{ env.BACKEND_DIR }}/Dockerfile
+          push: false
+          load: true
+          tags: donationchain-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke container health
+        run: |
+          set -euo pipefail
+          docker run -d --name dc-backend \
+            -e PORT=4000 \
+            -e NODE_ENV=test \
+            -e JWT_SECRET=ci-docker-secret \
+            -e SMS_PROVIDER=mock \
+            -p 4000:4000 \
+            donationchain-backend:ci
+          for i in $(seq 1 25); do
+            if curl -sf http://127.0.0.1:4000/health; then
+              echo
+              echo "Container healthy"
+              docker stop dc-backend
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs dc-backend || true
+          docker stop dc-backend || true
+          echo "::error::Container health check failed"
+          exit 1
+
+      - name: Summary
+        run: |
+          {
+            echo "### Docker"
+            echo "- Image: \`donationchain-backend:ci\` built successfully"
+            echo "- Health endpoint responded inside container"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Deploy template (manual only — fill secrets when hosting is ready) ─
+  # Uncomment / extend when you have Railway / Render / Fly / VPS secrets.
+  # deploy:
+  #   name: Deploy (manual)
+  #   needs: [test, docker]
+  #   if: github.event_name == 'workflow_dispatch'
+  #   runs-on: ubuntu-latest
+  #   environment: production
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Deploy to host
+  #       env:
+  #         DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+  #         DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+  #       run: |
+  #         echo "Configure your deploy target here (Railway, Render, Fly, VPS, etc.)"
