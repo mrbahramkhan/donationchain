@@ -5,7 +5,9 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '../../data');
+const DATA_DIR = process.env.DONATIONCHAIN_DATA_DIR
+  ? path.resolve(process.env.DONATIONCHAIN_DATA_DIR)
+  : path.join(__dirname, '../../data');
 const USERS_FILE = path.join(DATA_DIR, 'admin-users.json');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'donationchain-dev-secret-change-me';

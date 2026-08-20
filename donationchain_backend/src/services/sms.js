@@ -5,7 +5,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '../../data');
+const DATA_DIR = process.env.DONATIONCHAIN_DATA_DIR
+  ? path.resolve(process.env.DONATIONCHAIN_DATA_DIR)
+  : path.join(__dirname, '../../data');
 const LOG_FILE = path.join(DATA_DIR, 'sms-log.json');
 
 function ensureDir() {

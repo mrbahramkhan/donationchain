@@ -102,6 +102,8 @@ jobs:
             src/services/merkle.js
             test/health.test.js
             test/helpers/mocks.js
+            test/helpers/db.js
+            test/services/db.test.js
             test/services/mocks.test.js
           )
           for f in "${required[@]}"; do

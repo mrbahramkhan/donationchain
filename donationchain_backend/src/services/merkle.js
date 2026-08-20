@@ -6,7 +6,10 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const DATA_PATH = path.join(__dirname, '../../data/merkle_batches.json');
+const DATA_DIR = process.env.DONATIONCHAIN_DATA_DIR
+  ? path.resolve(process.env.DONATIONCHAIN_DATA_DIR)
+  : path.join(__dirname, '../../data');
+const DATA_PATH = path.join(DATA_DIR, 'merkle_batches.json');
 
 function sha256Hex(input) {
   return crypto.createHash('sha256').update(input).digest('hex');

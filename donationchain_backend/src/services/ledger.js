@@ -7,7 +7,10 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const DATA_PATH = path.join(__dirname, '../../data/ledger.json');
+const DATA_DIR = process.env.DONATIONCHAIN_DATA_DIR
+  ? path.resolve(process.env.DONATIONCHAIN_DATA_DIR)
+  : path.join(__dirname, '../../data');
+const DATA_PATH = path.join(DATA_DIR, 'ledger.json');
 
 function sha256(message) {
   return crypto.createHash('sha256').update(message).digest('hex');
