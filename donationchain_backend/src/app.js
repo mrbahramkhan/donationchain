@@ -23,6 +23,7 @@ const organizationsRouter = require('./routes/organizations');
 const shariahRouter = require('./routes/shariah');
 const billsRouter = require('./routes/bills');
 const paymentsRouter = require('./routes/payments');
+const devicesRouter = require('./routes/devices');
 const { healthPayload } = require('./health');
 
 
@@ -64,23 +65,8 @@ function createApp(options = {}) {
   app.use('/api/bills', billsRouter);
   app.use('/api/payments', paymentsRouter);
 
-  // Simple in-memory token registry (demo — replace with DB)
-  const tokenStore = new Map();
-
-  app.post('/api/devices/register', (req, res) => {
-    const { userId, token } = req.body;
-    if (!userId || !token) {
-      return res.status(400).json({ error: 'userId and token required' });
-    }
-    tokenStore.set(String(userId), token);
-    res.json({ success: true, registered: tokenStore.size });
-  });
-
-  app.get('/api/devices/:userId', (req, res) => {
-    const token = tokenStore.get(String(req.params.userId));
-    if (!token) return res.status(404).json({ error: 'not found' });
-    res.json({ userId: req.params.userId, token });
-  });
+  // Device FCM tokens — JWT-bound (see routes/devices.js)
+  app.use('/api/devices', devicesRouter);
 
   // 404
   app.use((_req, res) => res.status(404).json({ error: 'not found' }));

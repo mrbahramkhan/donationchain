@@ -1,3 +1,9 @@
+/**
+ * DonationChain auth middleware
+ * - requireAuth: valid JWT Bearer required
+ * - optionalAuth: attach user if token present
+ * - requireRole / requirePermission / requireStaff: RBAC gates
+ */
 const auth = require('../services/auth');
 const { hasPermission, normalizeRole, isStaffRole } = require('../rbac');
 
