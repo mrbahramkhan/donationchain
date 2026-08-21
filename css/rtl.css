@@ -1,0 +1,201 @@
+/**
+ * DonationChain — RTL optimization layer
+ * Loaded always; rules activate under html[dir="rtl"].
+ *
+ * Techniques used:
+ * 1. Logical properties (margin-inline, padding-inline, inset-inline)
+ * 2. dir=rtl root flip instead of per-component hacks
+ * 3. Isolate LTR islands (numbers, hashes, phones, URLs)
+ * 4. Icon / chevron mirroring only where meaning is directional
+ * 5. Input/search icon inset using logical offsets
+ * 6. Avoid left/right physical properties in new code
+ */
+
+/* ── 1. Typography & base ───────────────────────────────── */
+/* Urdu — performance strategy:
+ * - Body/UI: Noto Naskh Arabic (faster OpenType shaping)
+ * - Headings + .font-nastaliq: Noto Nastaliq Urdu after on-demand load
+ * - Fewer weights (400/700 only), display=swap, no per-element font overrides
+ */
+html[lang="ur"] body {
+  font-family: "Noto Naskh Arabic", Inter, "Segoe UI", Tahoma, sans-serif;
+  text-align: start;
+  letter-spacing: 0;
+  line-height: 1.65;
+  text-rendering: optimizeSpeed; /* prefer speed over geometric precision for long pages */
+  -webkit-font-smoothing: antialiased;
+}
+
+html[lang="ur"] h1,
+html[lang="ur"] h2,
+html[lang="ur"] h3,
+html[lang="ur"] h4 {
+  line-height: 1.7;
+  font-weight: 700;
+  /* Fallback Naskh until Nastaliq stylesheet is ready */
+  font-family: "Noto Naskh Arabic", Inter, sans-serif;
+}
+
+html[lang="ur"].fonts-nastaliq-ready h1,
+html[lang="ur"].fonts-nastaliq-ready h2,
+html[lang="ur"].fonts-nastaliq-ready h3,
+html[lang="ur"].fonts-nastaliq-ready h4,
+html[lang="ur"].fonts-nastaliq-ready .font-nastaliq {
+  font-family: "Noto Nastaliq Urdu", "Noto Naskh Arabic", sans-serif;
+  text-rendering: optimizeLegibility;
+  line-height: 1.8;
+}
+
+/* Avoid expensive Nastaliq on dense UI controls */
+html[lang="ur"] button,
+html[lang="ur"] input,
+html[lang="ur"] select,
+html[lang="ur"] textarea,
+html[lang="ur"] .font-mono,
+html[lang="ur"] [data-ltr] {
+  font-family: "Noto Naskh Arabic", Inter, Tahoma, sans-serif !important;
+  letter-spacing: 0;
+}
+
+/* Arabic — Noto Naskh Arabic (not Nastaliq) */
+html[lang="ar"],
+html[lang="ar"] body {
+  font-family: "Noto Naskh Arabic", "Noto Sans Arabic", Inter, Tahoma, sans-serif;
+  text-align: start;
+  letter-spacing: 0;
+}
+
+html[lang="ar"] h1,
+html[lang="ar"] h2,
+html[lang="ar"] h3 {
+  line-height: 1.6;
+  font-weight: 700;
+  font-family: "Noto Naskh Arabic", "Noto Sans Arabic", sans-serif;
+}
+
+/* Generic RTL fallback if lang not set */
+html[dir="rtl"]:not([lang="ur"]):not([lang="ar"]) body {
+  font-family: "Noto Naskh Arabic", Inter, "Segoe UI", Tahoma, sans-serif;
+  text-align: start;
+  letter-spacing: 0;
+}
+
+html[dir="rtl"] h1,
+html[dir="rtl"] h2,
+html[dir="rtl"] h3 {
+  line-height: 1.65;
+  font-weight: 700;
+}
+
+/* ── 2. LTR islands (never flip) ─────────────────────────── */
+html[dir="rtl"] .font-mono,
+html[dir="rtl"] [data-ltr],
+html[dir="rtl"] .ltr-isolate,
+html[dir="rtl"] code,
+html[dir="rtl"] .tabular-nums {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
+}
+
+/* Phone, amount inputs stay LTR for easier typing */
+html[dir="rtl"] input[type="tel"],
+html[dir="rtl"] input[type="number"],
+html[dir="rtl"] input[type="email"],
+html[dir="rtl"] input[type="url"] {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
+}
+
+/* ── 3. Search / icon fields — logical padding ───────────── */
+html[dir="rtl"] #case-search,
+html[dir="rtl"] input.pl-10 {
+  padding-inline-start: 2.5rem;
+  padding-inline-end: 1rem;
+}
+
+html[dir="rtl"] .relative .fa-search,
+html[dir="rtl"] .relative > .fa-search {
+  left: auto;
+  right: 0.875rem;
+  inset-inline-start: 0.875rem;
+  inset-inline-end: auto;
+}
+
+/* Tailwind left-3.5 search icon */
+html[dir="rtl"] .absolute.left-3\.5 {
+  left: auto;
+  right: 0.875rem;
+}
+
+/* ── 4. Flex / gap — prefer logical alignment ─────────────── */
+html[dir="rtl"] .text-left {
+  text-align: right;
+}
+html[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+/* Sticky toast: keep readable corner in RTL */
+html[dir="rtl"] #toast {
+  right: auto;
+  left: 1.5rem;
+}
+
+/* ── 5. Directional icons only ───────────────────────────── */
+html[dir="rtl"] .icon-dir,
+html[dir="rtl"] .fa-arrow-left,
+html[dir="rtl"] .fa-chevron-left,
+html[dir="rtl"] .fa-arrow-right,
+html[dir="rtl"] .fa-chevron-right {
+  transform: scaleX(-1);
+}
+
+/* Non-directional icons must NOT flip */
+html[dir="rtl"] .fa-heart,
+html[dir="rtl"] .fa-lock,
+html[dir="rtl"] .fa-shield-halved,
+html[dir="rtl"] .fa-check,
+html[dir="rtl"] .fa-spinner {
+  transform: none;
+}
+
+/* ── 6. Modal close button — logical corner ──────────────── */
+html[dir="rtl"] .absolute.top-4.right-4 {
+  right: auto;
+  left: 1rem;
+}
+
+/* ── 7. Progress bars stay LTR fill (universal metaphor) ─── */
+html[dir="rtl"] #cd-bar,
+html[dir="rtl"] [class*="bg-primary"].h-2,
+html[dir="rtl"] [class*="bg-primary"].h-2\.5 {
+  /* width % still grows from inline-start in most browsers with dir=rtl;
+     force physical left growth for funding bars */
+  margin-inline-start: 0;
+  transform-origin: left center;
+}
+
+/* ── 8. Reduce layout thrash on lang switch ──────────────── */
+html {
+  /* Prevent horizontal scrollbar flicker when toggling dir */
+  overflow-x: clip;
+}
+
+html[dir="rtl"] * {
+  /* Optional: smoother text wrap for Urdu */
+  word-spacing: normal;
+}
+
+/* ── 9. Nav spacing under RTL ────────────────────────────── */
+html[dir="rtl"] nav .flex.items-center {
+  flex-direction: row; /* keep DOM order; dir handles visual start/end */
+}
+
+/* ── 10. Print / a11y ────────────────────────────────────── */
+@media print {
+  html[dir="rtl"] body {
+    font-size: 12pt;
+  }
+}

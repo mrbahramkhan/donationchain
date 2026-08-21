@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("dc_theme") || "light";
+        if (["light", "dark", "emerald"].indexOf(t) === -1) t = "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+
+  <title>DonationChain — Donors, seekers, direct to organizations</title>
+  <meta name="description" content="Pakistan's transparent donation platform. Connect donors and people in need. Payments go only to relevant organizations. AI fraud checks. Full audit trail." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://donationchain.pk/" />
+  <meta property="og:title" content="DonationChain — Transparent Giving" />
+  <meta property="og:description" content="Every rupee tracked. Direct to verified vendors." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#1A56DB" />
+  <link rel="manifest" href="manifest.json" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1A56DB',
+            accent: '#06B6D4',
+            success: '#059669',
+            warning: '#D97706',
+            danger: '#DC2626'
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Inter + Naskh always (UI). Nastaliq loaded on-demand when lang=ur — see js/fonts.js -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet" />
+  <link id="font-nastaliq" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" media="print" onload="this.media='all'" disabled />
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; }
+    /* Urdu UI uses Naskh (fast); Nastaliq only on headings when fonts ready */
+    html[lang="ur"] body {
+      font-family: "Noto Naskh Arabic", Inter, Tahoma, sans-serif;
+    }
+    html[lang="ur"].fonts-nastaliq-ready h1,
+    html[lang="ur"].fonts-nastaliq-ready h2,
+    html[lang="ur"].fonts-nastaliq-ready h3,
+    html[lang="ur"].fonts-nastaliq-ready .font-nastaliq {
+      font-family: "Noto Nastaliq Urdu", "Noto Naskh Arabic", sans-serif;
+    }
+    html[lang="ar"] body {
+      font-family: "Noto Naskh Arabic", Inter, Tahoma, sans-serif;
+    }
+    .hero-gradient { background: linear-gradient(135deg, #1A56DB 0%, #0E4DB5 45%, #0891B2 100%); }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .focus\:not-sr-only:focus { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
+    :focus-visible { outline: 2px solid #1A56DB; outline-offset: 2px; }
+    /* RTL rules → css/rtl.css */
+  </style>
+  <link rel="stylesheet" href="css/rtl.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+  <!-- Skip link — WCAG 2.4.1 -->
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold">
+    Skip to main content
+  </a>
+
+  <!-- NAV -->
+  <nav class="bg-white/95 backdrop-blur border-b border-slate-200/80 sticky top-0 z-50" role="navigation" aria-label="Primary">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2.5" aria-label="DonationChain home">
+        <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/25" aria-hidden="true">D</div>
+        <span class="text-lg font-bold text-slate-900 tracking-tight">Donation<span class="text-primary">Chain</span></span>
+      </a>
+      <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
+        <a href="#cases" class="hover:text-primary transition" data-i18n="nav.cases">Cases</a>
+        <a href="#bills" class="hover:text-primary transition">Bills</a>
+        <a href="#how" class="hover:text-primary transition" data-i18n="nav.how">How it works</a>
+        <a href="apply.html" class="hover:text-primary transition font-semibold" data-i18n="nav.needHelp">Need help</a>
+        <a href="donor/register.html" class="hover:text-primary transition font-semibold" data-i18n="nav.becomeDonor">Donate</a>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <label class="sr-only" for="lang-select">Language</label>
+        <select id="lang-select" onchange="I18n.setLang(this.value)" class="text-sm font-semibold text-primary border border-primary/30 px-2 py-1.5 rounded-lg bg-white focus:ring-2 focus:ring-primary/40" aria-label="Language">
+          <option value="en">EN</option>
+          <option value="ur">اردو</option>
+          <option value="ar">العربية</option>
+        </select>
+        <label class="sr-only" for="theme-select">Theme</label>
+        <select id="theme-select" onchange="DCTheme.set(this.value)" class="text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white text-slate-700 focus:ring-2 focus:ring-primary/40" aria-label="Theme">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+          <option value="emerald">Emerald</option>
+        </select>
+        <button id="nav-auth-btn" type="button" onclick="openLogin()" class="text-sm font-medium text-slate-600 hover:text-primary px-3 py-2 focus:ring-2 focus:ring-primary/40 rounded-lg" data-i18n="nav.login">Login</button>
+        <button type="button" onclick="openDonate(false)" class="bg-primary text-white px-4 sm:px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20 focus:ring-2 focus:ring-offset-2 focus:ring-primary" data-i18n="nav.donate">Donate</button>
+        <button id="mobile-menu-btn" type="button" onclick="toggleMobileNav()" class="md:hidden w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 focus:ring-2 focus:ring-primary/40" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
+          <i class="fas fa-bars" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+        <div id="mobile-nav" class="hidden md:hidden border-t border-slate-100 bg-white px-4 py-3 space-y-2 text-sm font-medium" role="menu" hidden>
+      <a href="#cases" onclick="toggleMobileNav()" class="block py-2 text-slate-600" data-i18n="nav.cases">Cases</a>
+      <a href="#how" onclick="toggleMobileNav()" class="block py-2 text-slate-600" data-i18n="nav.how">How it works</a>
+      <a href="apply.html" onclick="toggleMobileNav()" class="block py-2 text-primary font-semibold" data-i18n="nav.needHelp">Need help</a>
+      <a href="donor/register.html" onclick="toggleMobileNav()" class="block py-2 text-primary font-semibold">Donate</a>
+      <a href="donor/" class="block py-2 text-slate-600" data-i18n="nav.impact">My impact</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <main id="main-content">
+  <section class="hero-gradient text-white overflow-hidden" aria-labelledby="hero-title">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur px-3.5 py-1.5 rounded-full text-xs font-medium mb-6 border border-white/20">
+            <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+            <span data-i18n="hero.live">Direct to hospitals, schools & vendors</span>
+          </div>
+          <h1 id="hero-title" class="text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold leading-[1.15] tracking-tight mb-5">
+            <span data-i18n="hero.title1">Donors meet people in need.</span><br /><span class="text-cyan-200" data-i18n="hero.title2">Payment goes to the hospital or school.</span>
+          </h1>
+          <p class="text-base sm:text-lg text-blue-100/95 max-w-lg mb-8 leading-relaxed">
+            <span data-i18n="hero.sub">Simple: someone needs help, someone gives help. Money is paid only to the relevant organization — never as personal cash.</span>
+          </p>
+          <!-- Two clear separate paths: Donor vs Needy -->
+          <div class="grid sm:grid-cols-2 gap-3 mb-6 max-w-lg">
+            <a href="#cases" onclick="document.getElementById('cases').scrollIntoView({behavior:'smooth'}); return false;"
+               class="bg-white text-primary px-5 py-4 rounded-2xl font-bold text-sm hover:scale-[1.02] transition shadow-xl flex flex-col gap-1">
+              <span class="flex items-center gap-2"><i class="fas fa-hand-holding-heart"></i> I want to donate</span>
+              <span class="text-xs font-medium text-slate-500">See open cases · Donor form</span>
+            </a>
+            <a href="apply.html"
+               class="bg-white/15 border border-white/40 text-white px-5 py-4 rounded-2xl font-bold text-sm hover:bg-white/25 transition flex flex-col gap-1">
+              <span class="flex items-center gap-2"><i class="fas fa-user-injured"></i> I need help</span>
+              <span class="text-xs font-medium text-blue-100">Apply for support</span>
+            </a>
+          </div>
+          <div class="flex flex-wrap gap-3 mb-10">
+            <a href="donor/register.html" class="border border-white/40 px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-white/10 transition">
+              Donor register →
+            </a>
+            <a href="#how" class="border border-white/40 px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-white/10 transition" data-i18n="hero.how">How it works</a>
+          </div>
+          <div class="grid grid-cols-3 gap-6 max-w-md">
+            <div><p class="text-2xl sm:text-3xl font-extrabold">1.2M+</p><p class="text-xs text-blue-200 mt-0.5" data-i18n="hero.donors">Donors</p></div>
+            <div><p class="text-2xl sm:text-3xl font-extrabold">48k+</p><p class="text-xs text-blue-200 mt-0.5" data-i18n="hero.closed">Cases closed</p></div>
+            <div><p class="text-2xl sm:text-3xl font-extrabold">95%</p><p class="text-xs text-blue-200 mt-0.5" data-i18n="hero.fraud">Fraud reduction</p></div>
+          </div>
+        </div>
+        <div class="relative">
+          <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-2xl">
+            <div class="flex items-center justify-between mb-5">
+              <p class="text-sm font-semibold text-white/90" data-i18n="hero.recent">Recent delivery proof</p>
+              <span class="text-[10px] uppercase tracking-wider bg-emerald-500/30 text-emerald-100 px-2 py-1 rounded-md font-bold">Verified</span>
+            </div>
+            <div class="space-y-4">
+              <div class="bg-white/10 rounded-2xl p-4 flex gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-lg">🏥</div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold truncate">Surgery — Mayo Hospital</p>
+                  <p class="text-xs text-blue-100/80 mt-0.5">PKR 45,000 · Geo-tagged receipt · 2h ago</p>
+                </div>
+              </div>
+              <div class="bg-white/10 rounded-2xl p-4 flex gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-lg">📚</div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold truncate">School fees — Karachi</p>
+                  <p class="text-xs text-blue-100/80 mt-0.5">PKR 18,500 · Enrollment proof · Today</p>
+                </div>
+              </div>
+              <div class="bg-white/10 rounded-2xl p-4 flex gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-lg">🛒</div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold truncate">Food package — Rawalpindi</p>
+                  <p class="text-xs text-blue-100/80 mt-0.5">PKR 9,000 · OTP + photo · Yesterday</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-[11px] text-blue-100/70 mt-4 text-center"><span data-i18n="hero.note">No personal cash — only organizations</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST STRIP -->
+  <section class="bg-white border-b border-slate-100">
+    <div class="max-w-7xl mx-auto px-4 py-5 flex flex-wrap justify-center gap-x-10 gap-y-3 text-xs sm:text-sm text-slate-500 font-medium">
+      <span class="flex items-center gap-2"><i class="fas fa-shield-halved text-primary"></i> Verified cases</span>
+      <span class="flex items-center gap-2"><i class="fas fa-building-columns text-primary"></i> Pay organizations only</span>
+      <span class="flex items-center gap-2"><i class="fas fa-receipt text-primary"></i> Simple records</span>
+      <span class="flex items-center gap-2"><i class="fas fa-moon text-primary"></i> Zakat compliant</span>
+      <span class="flex items-center gap-2"><i class="fas fa-lock text-primary"></i> Local payment methods</span>
+    </div>
+  </section>
+
+  <!-- CASES -->
+  <section id="cases" class="py-16 lg:py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+        <div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight" data-i18n="cases.title">Verified cases</h2>
+          <p class="text-slate-500 mt-1 text-sm" data-i18n="cases.sub">Pick a case. Your payment goes to the hospital, school, or vendor — not to personal cash.</p>
+          <p id="org-trust-note" class="text-xs text-slate-500 mt-2">Organizations are checked for registration and bank ownership before they can receive funds.</p>
+        </div>
+        <p id="cases-count" class="text-sm font-medium text-slate-400">—</p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 mb-6">
+        <div class="relative flex-1 max-w-md">
+          <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input id="case-search" type="search" placeholder="Search city, hospital, school…" data-i18n-placeholder="cases.search" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button class="filter-btn bg-primary text-white shadow-md px-3.5 py-2 rounded-xl text-xs font-semibold border border-transparent" data-filter="all" data-i18n="cases.all">All</button>
+          <button class="filter-btn bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-semibold hover:border-primary/40" data-filter="medical" data-i18n="cases.medical">Medical</button>
+          <button class="filter-btn bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-semibold hover:border-primary/40" data-filter="education" data-i18n="cases.education">Education</button>
+          <button class="filter-btn bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-semibold hover:border-primary/40" data-filter="food" data-i18n="cases.food">Food</button>
+          <button class="filter-btn bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-semibold hover:border-primary/40" data-filter="utility" data-i18n="cases.utility">Utility</button>
+        </div>
+      </div>
+
+      <div id="cases-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+      <div id="cases-empty" class="hidden text-center py-16">
+        <i class="fas fa-folder-open text-4xl text-slate-300 mb-3"></i>
+        <p class="text-slate-500 font-medium" data-i18n="cases.empty">No cases match your filters</p>
+        <button onclick="document.getElementById('case-search').value=''; DC.search=''; setFilter('all', document.querySelector('[data-filter=all]'))" class="mt-3 text-primary text-sm font-semibold" data-i18n="cases.clear">Clear filters</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- BILL PAYMENT -->
+  <section id="bills" class="py-16 bg-slate-50 border-y border-slate-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid lg:grid-cols-2 gap-10 items-center">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-widest text-primary mb-2">Utility bills</p>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-3">Pay bills for verified households</h2>
+          <p class="text-slate-500 text-sm leading-relaxed mb-4">
+            Electricity, gas, water, and landline — payment goes <strong>direct to the utility company</strong>, never as cash to a personal account.
+            Look up a consumer reference, confirm the amount, and pay via JazzCash, EasyPaisa, Raast, or card.
+          </p>
+          <ul class="space-y-2 text-sm text-slate-600 mb-6">
+            <li class="flex gap-2"><i class="fas fa-check text-success mt-0.5"></i> WAPDA / LESCO / MEPCO, SNGPL, SSGC, PTCL, water boards</li>
+            <li class="flex gap-2"><i class="fas fa-check text-success mt-0.5"></i> Exact bill amount · institutional payout only</li>
+            <li class="flex gap-2"><i class="fas fa-check text-success mt-0.5"></i> Or fund an open utility case from the marketplace above</li>
+          </ul>
+          <button type="button" onclick="openBillPay()" class="bg-primary text-white px-5 py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 shadow-lg shadow-blue-500/20">
+            <i class="fas fa-file-invoice-dollar mr-2"></i> Pay a utility bill
+          </button>
+          <button type="button" onclick="setFilter('utility', document.querySelector('[data-filter=utility]')); document.getElementById('cases').scrollIntoView({behavior:'smooth'})" class="ml-2 text-sm font-semibold text-primary px-3 py-3 hover:underline">
+            Browse utility cases →
+          </button>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p class="text-xs font-semibold text-slate-500 uppercase mb-3">Supported providers</p>
+          <div class="grid grid-cols-2 gap-3 text-sm" id="bill-providers-preview">
+            <div class="rounded-xl bg-slate-50 border border-slate-100 p-3 font-medium">WAPDA / LESCO</div>
+            <div class="rounded-xl bg-slate-50 border border-slate-100 p-3 font-medium">SNGPL</div>
+            <div class="rounded-xl bg-slate-50 border border-slate-100 p-3 font-medium">SSGC</div>
+            <div class="rounded-xl bg-slate-50 border border-slate-100 p-3 font-medium">PTCL</div>
+            <div class="rounded-xl bg-slate-50 border border-slate-100 p-3 font-medium col-span-2">Water boards (WASA / KWSB)</div>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-4">Demo lookup generates a stable amount from the reference number. Production connects to utility / Raast bill APIs.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="py-16 bg-white border-y border-slate-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-center mb-3" data-i18n="how.title">How DonationChain works</h2>
+      <p class="text-center text-slate-500 text-sm mb-12 max-w-xl mx-auto">Three steps. No middleman cash.</p>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="rounded-2xl border border-slate-100 p-6 hover:shadow-md transition">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold mb-4">1</div>
+          <h3 class="font-bold mb-2">1. Need is listed</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">A person submits a need. We verify the case and the institution.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-100 p-6 hover:shadow-md transition">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold mb-4">2</div>
+          <h3 class="font-bold mb-2">2. You give</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">A donor chooses a case and pays.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-100 p-6 hover:shadow-md transition">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold mb-4">3</div>
+          <h3 class="font-bold mb-2">3. Organization is paid</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Payment goes straight to that hospital, school, or vendor account.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-100 p-6 hover:shadow-md transition">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold mb-4">4</div>
+          <h3 class="font-bold mb-2">Proof</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">You can see that the organization received the payment.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ZAKAT -->
+  <section id="zakat" class="py-16 lg:py-20 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <p class="text-cyan-400 text-sm font-semibold uppercase tracking-wider mb-3">Islamic giving</p>
+          <h2 class="text-3xl font-extrabold mb-4" data-i18n="zakat.title">Zakat calculator</h2>
+          <p class="text-slate-300 text-sm leading-relaxed mb-6">Estimate 2.5% on gold, silver, cash, and business assets. Distribute only to Zakat-eligible verified cases with a clear trail.
+            <a href="shariah/" class="text-cyan-300 hover:text-cyan-200 underline font-medium">Shariah Compliance Board</a> oversees policy &amp; asnaf eligibility.</p>
+          <ul class="space-y-2 text-sm text-slate-300">
+            <li class="flex gap-2"><i class="fas fa-check text-cyan-400 mt-0.5"></i> Nisab-aware estimates (demo rates)</li>
+            <li class="flex gap-2"><i class="fas fa-check text-cyan-400 mt-0.5"></i> Category tagging for Shariah reporting</li>
+            <li class="flex gap-2"><i class="fas fa-check text-cyan-400 mt-0.5"></i> Receipt for your records</li>
+          </ul>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-8 backdrop-blur">
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label for="zakat-gold" class="text-xs text-slate-400 mb-1 block">Gold (tola)</label>
+              <input id="zakat-gold" type="number" value="0" min="0" class="w-full bg-white/10 border border-white/15 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/50" />
+            </div>
+            <div>
+              <label for="zakat-silver" class="text-xs text-slate-400 mb-1 block">Silver (tola)</label>
+              <input id="zakat-silver" type="number" value="0" min="0" class="w-full bg-white/10 border border-white/15 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/50" />
+            </div>
+            <div>
+              <label for="zakat-cash" class="text-xs text-slate-400 mb-1 block">Cash / bank (PKR)</label>
+              <input id="zakat-cash" type="number" value="500000" min="0" class="w-full bg-white/10 border border-white/15 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/50" />
+            </div>
+            <div>
+              <label for="zakat-business" class="text-xs text-slate-400 mb-1 block">Business assets (PKR)</label>
+              <input id="zakat-business" type="number" value="0" min="0" class="w-full bg-white/10 border border-white/15 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/50" />
+            </div>
+          </div>
+          <label class="flex items-start gap-2 text-xs text-slate-300 mb-4 cursor-pointer">
+            <input id="zakat-hawl-declare" type="checkbox" class="mt-0.5 rounded border-white/30 bg-white/10 text-cyan-500" />
+            <span>I declare that this wealth has been above the Nisab threshold for one full lunar year (Hawl), so Zakat is due.</span>
+          </label>
+          <button onclick="calcZakat()" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold py-3 rounded-xl text-sm transition" data-i18n="zakat.calc">Calculate Zakat (Nisab + Hawl)</button>
+          <div id="zakat-result" class="hidden mt-6 border-t border-white/10 pt-6">
+            <div class="text-center">
+              <p class="text-xs text-slate-400">Zakatable wealth: <span id="zakat-base">—</span></p>
+              <p class="text-xs text-slate-400 mt-1">Current Nisab (gold): <span id="zakat-nisab">—</span></p>
+              <p class="text-sm text-slate-300 mt-3">Zakat due (2.5%)</p>
+              <p class="text-4xl font-extrabold text-white mt-1">PKR <span id="zakat-amount">0</span></p>
+              <p class="text-xs text-slate-400 mt-2">Remaining after platform payments: PKR <span id="zakat-remaining">0</span></p>
+            </div>
+            <div class="mt-4">
+              <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div id="zakat-hawl-progress" class="h-full bg-cyan-400 rounded-full transition-all" style="width:0%"></div>
+              </div>
+              <p id="zakat-hawl-status" class="text-xs text-cyan-300 mt-2 text-center"></p>
+            </div>
+            <div class="text-center">
+              <button onclick="openDonate(true)" class="mt-4 bg-white text-primary font-semibold px-6 py-2.5 rounded-xl text-sm hover:bg-slate-100 transition" data-i18n="zakat.distribute">Distribute to eligible cases</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST -->
+  <section id="trust" class="py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-center mb-10" data-i18n="trust.title">Built for accountability</h2>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <i class="fas fa-robot text-primary text-xl mb-3"></i>
+          <h3 class="font-bold mb-2">AI pre-screening</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Duplicate CNIC detection, document authenticity scoring, and risk flags before human review.</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <i class="fas fa-file-invoice-dollar text-primary text-xl mb-3"></i>
+          <h3 class="font-bold mb-2">No cash to beneficiaries</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Platform rule: payouts only to verified institutional accounts — hospitals, schools, utilities, vendors.</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <i class="fas fa-clipboard-check text-primary text-xl mb-3"></i>
+          <h3 class="font-bold mb-2">CSR & Zakat reports</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Export-ready impact summaries for corporate compliance and personal Zakat records.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEDGER VERIFY -->
+  <section id="verify" class="py-16 bg-white border-t border-slate-100">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+      <div class="text-center mb-8">
+        <p class="text-primary text-xs font-bold uppercase tracking-wider mb-2">Blockchain-style verification</p>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900" data-i18n="verify.title">Verify a donation</h2>
+        <p class="text-sm text-slate-500 mt-2">Each donation is hashed into an append-only chain. Anyone with a receipt ID can check integrity.</p>
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Receipt ID</label>
+        <div class="flex flex-col sm:flex-row gap-2 mt-2">
+          <input id="verify-receipt-id" type="text" placeholder="DC-…" class="flex-1 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:outline-none bg-white font-mono" />
+          <button onclick="verifyReceiptInput()" class="bg-primary text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 whitespace-nowrap">
+            <i class="fas fa-shield-halved mr-1"></i> Verify ledger
+          </button>
+          <button onclick="verifyOnChain()" class="bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-slate-800 whitespace-nowrap">
+            <i class="fas fa-link mr-1"></i> Check on-chain
+          </button>
+          <button onclick="verifyMerkleProof()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-indigo-500 whitespace-nowrap">
+            <i class="fas fa-sitemap mr-1"></i> Merkle proof
+          </button>
+        </div>
+        <div id="verify-result" class="mt-4 min-h-[2rem]"></div>
+        <div id="onchain-status" class="mt-3 text-xs text-slate-500"></div>
+        <p class="text-[11px] text-slate-400 mt-4 leading-relaxed">
+          Off-chain: hash chain + Merkle batch proofs. On-chain: <code class="bg-slate-100 px-1 rounded">DonationRegistry</code> on Polygon (set address in <code class="bg-slate-100 px-1 rounded">contract-config.js</code>). Funds never go through the contract.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-900 text-slate-400 py-12" role="contentinfo">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col sm:flex-row justify-between gap-8 mb-8">
+        <div>
+          <div class="flex items-center gap-2 text-white font-bold text-lg mb-2">
+            <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-sm">D</div>
+            DonationChain
+          </div>
+          <p class="text-sm max-w-xs">Connecting donors and seekers. Payments to organizations only.</p>
+        </div>
+        <div class="flex gap-12 text-sm">
+          <div>
+            <p class="text-white font-semibold mb-2" data-i18n="footer.product">Product</p>
+            <a href="#cases" class="block hover:text-white mb-1" data-i18n="nav.cases">Cases</a>
+            <a href="#zakat" class="block hover:text-white mb-1" data-i18n="nav.zakat">Zakat</a>
+            <a href="#bills" class="block hover:text-white mb-1">Bill payment</a>
+            <a href="shariah/" class="block hover:text-white mb-1">Shariah Board</a>
+            <a href="#how" class="block hover:text-white mb-1" data-i18n="nav.how">How it works</a>
+            <a href="donor/" class="block hover:text-white mb-1" data-i18n="nav.impact">My impact</a>
+          </div>
+          <div>
+            <p class="text-white font-semibold mb-2" data-i18n="footer.more">More</p>
+            <a href="apply.html" class="block hover:text-white mb-1" data-i18n="nav.needHelp">Need help</a>
+            <a href="donor/register.html" class="block hover:text-white mb-1" data-i18n="nav.becomeDonor">Become a donor</a>
+            <a href="explorer.html" class="block hover:text-white mb-1" data-i18n="nav.explorer">Explorer</a>
+            <a href="admin/" class="block hover:text-white mb-1 text-slate-500" data-i18n="nav.admin">Admin</a>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-slate-800 pt-6 text-xs flex flex-col sm:flex-row justify-between gap-2">
+        <span>© 2026 DonationChain. Demo platform — payments simulated.</span>
+        <span>JazzCash · EasyPaisa · Raast · Cards</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- DONATE MODAL -->
+  <div id="donate-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeDonate()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+      <h3 class="text-xl font-bold text-slate-900 mb-1" data-i18n="donate.title">Complete donation</h3>
+      <p class="text-slate-500 text-sm mb-5" id="donate-case-title">Supporting verified case</p>
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Amount (PKR)</label>
+        <input id="donate-amount" type="number" min="100" max="500000" value="5000" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-lg font-semibold focus:ring-2 focus:ring-primary focus:outline-none" />
+        <div id="quick-amounts" class="flex flex-wrap gap-2 mt-2">
+          <button type="button" onclick="setQuickAmount(1000)" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-medium">1,000</button>
+          <button type="button" onclick="setQuickAmount(2500)" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-medium">2,500</button>
+          <button type="button" onclick="setQuickAmount(5000)" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-medium">5,000</button>
+          <button type="button" onclick="setQuickAmount(10000)" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-medium">10,000</button>
+        </div>
+        <p id="donate-error" class="hidden text-danger text-xs mt-2 font-medium"></p>
+      </div>
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Payment method</label>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm">
+            <input type="radio" name="paymethod" value="jazzcash" checked class="text-primary" /> JazzCash
+          </label>
+          <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm">
+            <input type="radio" name="paymethod" value="easypaisa" class="text-primary" /> EasyPaisa
+          </label>
+          <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm">
+            <input type="radio" name="paymethod" value="raast" class="text-primary" /> Raast
+          </label>
+          <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm">
+            <input type="radio" name="paymethod" value="stripe" class="text-primary" /> Card
+          </label>
+        </div>
+      </div>
+      <label class="flex items-center gap-2 text-sm text-slate-600 mb-5 cursor-pointer">
+        <input type="checkbox" id="anonymous" class="rounded text-primary" />
+        Donate anonymously
+      </label>
+      <button id="pay-btn" onclick="processPayment()" class="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition">
+        <span data-i18n="donate.pay">Pay Securely</span> <i class="fas fa-lock ml-2 text-xs"></i>
+      </button>
+      <p class="text-[11px] text-center text-slate-400 mt-3">Demo mode — no real charge. Funds message: direct to verified vendor.</p>
+    </div>
+  </div>
+
+  <!-- RECEIPT MODAL -->
+  <div id="receipt-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-full bg-emerald-100 text-success flex items-center justify-center text-2xl mx-auto mb-3">
+          <i class="fas fa-check"></i>
+        </div>
+        <h3 class="text-xl font-bold" data-i18n="receipt.ok">Payment successful</h3>
+        <p class="text-sm text-slate-500 mt-1">Digital receipt generated</p>
+      </div>
+      <div class="bg-slate-50 rounded-2xl p-4 space-y-2.5 text-sm mb-6">
+        <div class="flex justify-between"><span class="text-slate-500">Receipt</span><span id="receipt-id" class="font-mono font-semibold"></span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Amount</span><span id="receipt-amount" class="font-bold text-success"></span></div>
+        <div class="flex justify-between gap-4"><span class="text-slate-500">Case</span><span id="receipt-case" class="font-medium text-right"></span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Vendor</span><span id="receipt-vendor" class="font-medium"></span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Method</span><span id="receipt-method" class="font-medium"></span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Date</span><span id="receipt-date" class="font-medium text-xs"></span></div>
+      </div>
+      <div class="bg-slate-900 text-slate-200 rounded-2xl p-4 text-xs space-y-1.5 mb-5">
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400">Ledger status</span>
+          <span id="receipt-chain-status">—</span>
+        </div>
+        <div class="flex justify-between gap-2"><span class="text-slate-400">Block</span><span id="receipt-block" class="font-mono">—</span></div>
+        <div class="flex justify-between gap-2"><span class="text-slate-400">Tx hash</span><span id="receipt-hash" class="font-mono truncate max-w-[200px]" title="">—</span></div>
+        <div class="flex justify-between gap-2"><span class="text-slate-400">Merkle</span><span id="receipt-merkle" class="font-mono text-[10px]">Will batch on next proof</span></div>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="shareReceipt()" class="flex-1 border border-slate-200 py-3 rounded-xl text-sm font-semibold hover:bg-slate-50">Share</button>
+        <a href="donor/" class="flex-1 text-center border border-slate-200 py-3 rounded-xl text-sm font-semibold hover:bg-slate-50">Impact</a>
+        <button onclick="closeReceipt()" class="flex-1 bg-primary text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-700">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CASE DETAIL MODAL -->
+  <div id="case-detail-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeCaseDetail()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+      <div class="flex items-center gap-2 mb-3">
+        <span id="cd-urgency" class="px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase"></span>
+        <span id="cd-verified" class="text-success text-xs font-semibold"></span>
+      </div>
+      <h3 id="cd-title" class="text-xl font-bold text-slate-900 mb-2"></h3>
+      <p id="cd-meta" class="text-sm text-slate-500 mb-4"></p>
+      <p id="cd-desc" class="text-sm text-slate-600 leading-relaxed mb-5"></p>
+      <div class="bg-slate-50 rounded-2xl p-4 mb-5">
+        <div class="flex justify-between text-sm mb-2">
+          <span id="cd-raised" class="font-semibold"></span>
+          <span id="cd-goal" class="text-slate-500"></span>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-2.5">
+          <div id="cd-bar" class="bg-primary h-2.5 rounded-full" style="width:0%"></div>
+        </div>
+        <p id="cd-remaining" class="text-xs text-slate-400 mt-2"></p>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="closeCaseDetail()" class="flex-1 border border-slate-200 py-3 rounded-xl text-sm font-semibold" data-i18n="detail.close">Close</button>
+        <button id="cd-donate-btn" onclick="donateFromDetail()" class="flex-1 bg-primary text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-700" data-i18n="detail.donate">Donate to this case</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN MODAL -->
+  <div id="login-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+      <button onclick="closeLogin()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+      <h3 class="text-xl font-bold mb-1" data-i18n="login.title">Login / Register</h3>
+      <p class="text-sm text-slate-500 mb-5">OTP-secured access for donors</p>
+      <input id="login-phone" type="tel" placeholder="03XX XXXXXXX" class="w-full border border-slate-200 rounded-xl px-4 py-3 mb-3 focus:ring-2 focus:ring-primary focus:outline-none text-sm" />
+      <button onclick="sendOTP()" class="w-full bg-primary text-white py-3 rounded-xl font-semibold text-sm mb-3" data-i18n="login.send">Send OTP</button>
+      <div id="otp-section" class="hidden">
+        <input id="login-otp" type="text" placeholder="6-digit OTP" maxlength="6" class="w-full border border-slate-200 rounded-xl px-4 py-3 mb-3 focus:ring-2 focus:ring-primary focus:outline-none text-sm" />
+        <button onclick="verifyOTP()" class="w-full bg-success text-white py-3 rounded-xl font-semibold text-sm" data-i18n="login.verify">Verify & continue</button>
+      </div>
+      <p class="text-[11px] text-center text-slate-400 mt-4">Demo OTP: <strong>123456</strong></p>
+    </div>
+  </div>
+
+  <!-- BILL PAY MODAL -->
+  <div id="bill-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <button type="button" onclick="closeBillPay()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl leading-none" aria-label="Close">&times;</button>
+      <h3 class="text-xl font-bold text-slate-900 mb-1">Pay utility bill</h3>
+      <p class="text-slate-500 text-sm mb-5">Funds go only to the utility provider account.</p>
+      <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Provider</label>
+      <select id="bill-provider" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm mb-4 focus:ring-2 focus:ring-primary focus:outline-none bg-white"></select>
+      <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Bill / consumer reference</label>
+      <input id="bill-ref" type="text" placeholder="Consumer or reference number" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm mb-3 focus:ring-2 focus:ring-primary focus:outline-none" />
+      <button type="button" onclick="lookupBill()" class="w-full border border-slate-200 text-slate-800 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 mb-4">
+        <i class="fas fa-search mr-1"></i> Look up bill
+      </button>
+      <div id="bill-result" class="hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 mb-4 text-sm space-y-1"></div>
+      <div id="bill-pay-block" class="hidden space-y-3">
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide">Amount (PKR)</label>
+        <input id="bill-amount" type="number" min="100" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-lg font-semibold focus:ring-2 focus:ring-primary focus:outline-none" />
+        <p class="text-xs text-slate-500">Payment method (same as donations)</p>
+        <div class="flex flex-wrap gap-2 text-xs" id="bill-methods">
+          <label class="px-3 py-2 rounded-lg border border-slate-200 cursor-pointer"><input type="radio" name="billmethod" value="raast" class="mr-1" checked /> Raast</label>
+          <label class="px-3 py-2 rounded-lg border border-slate-200 cursor-pointer"><input type="radio" name="billmethod" value="jazzcash" class="mr-1" /> JazzCash</label>
+          <label class="px-3 py-2 rounded-lg border border-slate-200 cursor-pointer"><input type="radio" name="billmethod" value="easypaisa" class="mr-1" /> EasyPaisa</label>
+          <label class="px-3 py-2 rounded-lg border border-slate-200 cursor-pointer"><input type="radio" name="billmethod" value="card" class="mr-1" /> Card</label>
+        </div>
+        <button type="button" onclick="confirmBillPay()" class="w-full bg-primary text-white py-3 rounded-xl font-semibold text-sm hover:bg-blue-700">
+          Pay to utility <i class="fas fa-lock ml-1 text-xs"></i>
+        </button>
+      </div>
+      <p id="bill-error" class="hidden text-danger text-xs mt-2 font-medium"></p>
+      <p id="bill-ok" class="hidden text-success text-xs mt-2 font-medium"></p>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl hidden z-50 max-w-sm text-sm font-medium"></div>
+
+  <script src="js/theme.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/ledger.js"></script>
+  <script src="js/merkle.js"></script>
+  <script src="js/contract-config.js"></script>
+  <script src="js/contracts.js"></script>
+  <script src="js/sms.js"></script>
+  <script src="js/organizations.js"></script>
+  <script src="js/privacy.js"></script>
+  <script src="js/rbac.js"></script>
+  <script src="js/zakat.js"></script>
+  <script src="js/bills.js"></script>
+  <script src="js/payments.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    function openBillPay() {
+      if (window.DCBills && !DCBills.isEnabled()) {
+        if (typeof showToast === "function") showToast("Bill payment is disabled in config");
+        return;
+      }
+      const sel = document.getElementById("bill-provider");
+      if (sel && window.DCBills && !sel.options.length) {
+        DCBills.providers().forEach((p) => {
+          const o = document.createElement("option");
+          o.value = p.id;
+          o.textContent = p.name;
+          sel.appendChild(o);
+        });
+      }
+      document.getElementById("bill-result").classList.add("hidden");
+      document.getElementById("bill-pay-block").classList.add("hidden");
+      document.getElementById("bill-error").classList.add("hidden");
+      document.getElementById("bill-ok").classList.add("hidden");
+      const m = document.getElementById("bill-modal");
+      m.classList.remove("hidden");
+      m.classList.add("flex");
+    }
+    function closeBillPay() {
+      const m = document.getElementById("bill-modal");
+      m.classList.add("hidden");
+      m.classList.remove("flex");
+    }
+    async function lookupBill() {
+      const err = document.getElementById("bill-error");
+      const ok = document.getElementById("bill-ok");
+      err.classList.add("hidden");
+      ok.classList.add("hidden");
+      if (!window.DCBills) return;
+      const providerId = document.getElementById("bill-provider").value;
+      const reference = document.getElementById("bill-ref").value;
+      const data = await DCBills.lookup(providerId, reference);
+      if (!data.ok) {
+        err.textContent = data.error || "Lookup failed";
+        err.classList.remove("hidden");
+        return;
+      }
+      const b = data.bill;
+      const box = document.getElementById("bill-result");
+      box.innerHTML =
+        "<p class=\"font-semibold text-slate-900\">" + b.providerName + "</p>" +
+        "<p class=\"text-slate-600\">Ref: " + b.reference + "</p>" +
+        "<p>Due: <strong>PKR " + Number(b.amountDue).toLocaleString("en-PK") + "</strong>" +
+        (b.arrears ? " · arrears PKR " + Number(b.arrears).toLocaleString("en-PK") : "") + "</p>" +
+        "<p class=\"text-xs text-slate-500\">" + b.billingMonth + " · due " + b.dueDate + " · " + b.status + "</p>";
+      box.classList.remove("hidden");
+      document.getElementById("bill-amount").value = b.amountDue + (b.arrears || 0);
+      document.getElementById("bill-pay-block").classList.remove("hidden");
+    }
+    async function confirmBillPay() {
+      const err = document.getElementById("bill-error");
+      const ok = document.getElementById("bill-ok");
+      err.classList.add("hidden");
+      ok.classList.add("hidden");
+      const methodEl = document.querySelector('input[name="billmethod"]:checked');
+      const method = methodEl ? methodEl.value : "raast";
+      const providerId = document.getElementById("bill-provider").value;
+      const reference = document.getElementById("bill-ref").value;
+      const amount = Number(document.getElementById("bill-amount").value);
+      const pname = (window.DCBills && DCBills.getProvider(providerId))
+        ? DCBills.getProvider(providerId).name
+        : providerId;
+      try {
+        if (window.DCPayments) {
+          ok.textContent = "Initiating " + method.toUpperCase() + "…";
+          ok.classList.remove("hidden");
+          const result = await DCPayments.payAndWait(
+            {
+              amount,
+              method,
+              purpose: "bill",
+              vendorName: pname,
+              billReference: reference,
+              caseTitle: "Utility bill " + reference,
+              idempotencyKey: "bill-" + providerId + "-" + reference + "-" + amount,
+            },
+            {
+              onUpdate: (s) => {
+                ok.textContent = "Status: " + (s.status || "…");
+              },
+            }
+          );
+          await DCBills.pay({ providerId, reference, amount, method });
+          ok.textContent =
+            "Settled " + (result.payment.id || "") + " → " + pname +
+            (result.status.providerRef ? " · " + result.status.providerRef : "");
+          if (typeof showToast === "function") showToast("Bill paid via " + method);
+        } else {
+          const res = await DCBills.pay({ providerId, reference, amount, method });
+          if (!res.ok) throw new Error(res.error || "Payment failed");
+          ok.textContent = "Paid " + res.payment.id + " → " + res.payment.providerName;
+          if (typeof showToast === "function") showToast("Bill paid to utility");
+        }
+        ok.classList.remove("hidden");
+      } catch (e) {
+        err.textContent = e.message || "Payment failed";
+        err.classList.remove("hidden");
+        ok.classList.add("hidden");
+      }
+    }
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeBillPay();
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.I18n) I18n.apply();
+    });
+  </script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(function () {});
+    }
+  </script>
+</body>
+</html>
+<!-- deployed 2026-08-21T03:57:18Z eedc7e6924269535e99081ab8a9157924ff1b622 -->
