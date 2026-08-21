@@ -9,7 +9,9 @@
     "test": "node --test test/health.test.js test/services/*.test.js",
     "test:fcm": "node scripts/test-fcm.js",
     "check": "find src -name '*.js' -print0 | xargs -0 -n1 node --check",
-    "health": "curl -sf http://127.0.0.1:${PORT:-4000}/health"
+    "health": "curl -sf http://127.0.0.1:${PORT:-4000}/health",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=src/**/*.js --test-coverage-exclude=**/node_modules/** test/health.test.js test/services/*.test.js",
+    "test:coverage:gate": "node --test --experimental-test-coverage --test-coverage-include=src/**/*.js --test-coverage-exclude=**/node_modules/** --test-coverage-lines=50 --test-coverage-functions=40 test/health.test.js test/services/*.test.js"
   },
   "engines": {
     "node": ">=18"
