@@ -1,13 +1,13 @@
 /**
  * Auth middleware behaviour with mock req/res.
  */
-const { describe, it, beforeEach } = require('node:test');
-const assert = require('node:assert/strict');
+const { describe, it } = require('node:test');
 const authSvc = require('../../src/services/auth');
 const { requireAuth, requirePermission, requireStaff } = require('../../src/middleware/auth');
+const A = require('../helpers/assert');
 
 function mockRes() {
-  const res = {
+  return {
     statusCode: 200,
     body: null,
     status(code) {
@@ -19,75 +19,68 @@ function mockRes() {
       return this;
     },
   };
-  return res;
 }
 
 describe('requireAuth middleware', () => {
-  it('rejects missing bearer', () => {
-    const req = { headers: {} };
+  it('rejects missing bearer token', () => {
     const res = mockRes();
     let nextCalled = false;
-    requireAuth(req, res, () => {
+    requireAuth({ headers: {} }, res, () => {
       nextCalled = true;
     });
-    assert.equal(nextCalled, false);
-    assert.equal(res.statusCode, 401);
+    A.eq(res.statusCode, 401, 'status');
+    A.isFalse(nextCalled, 'next()');
+    A.eq(res.body.error, 'Unauthorized', 'body.error');
   });
 
-  it('accepts valid JWT from login', () => {
-    // ensure default admin exists via login
+  it('accepts JWT from admin login', () => {
     const login = authSvc.login(
       process.env.ADMIN_USERNAME || 'admin',
       process.env.ADMIN_PASSWORD || 'Admin@DC2026'
     );
-    if (!login.ok) {
-      // first boot may need password from env
-      assert.ok(login.ok, login.error || 'login failed');
-    }
-    const req = { headers: { authorization: `Bearer ${login.token}` } };
+    A.isTrue(login.ok, `login: ${login.error || 'ok'}`);
     const res = mockRes();
     let nextCalled = false;
+    const req = { headers: { authorization: `Bearer ${login.token}` } };
     requireAuth(req, res, () => {
       nextCalled = true;
     });
-    assert.equal(nextCalled, true);
-    assert.ok(req.user);
-    assert.ok(req.user.role || req.user.username);
+    A.isTrue(nextCalled, 'next()');
+    A.raw.ok(req.user, 'req.user attached');
+    A.raw.ok(req.user.role || req.user.username, 'user has role or username');
   });
 });
 
 describe('requirePermission notify:send', () => {
-  it('forbids role without permission', () => {
-    const req = { user: { role: 'donor', sub: 'd1' } };
+  it('forbids donor', () => {
     const res = mockRes();
     let nextCalled = false;
-    requirePermission('notify:send')(req, res, () => {
+    requirePermission('notify:send')({ user: { role: 'donor', sub: 'd1' } }, res, () => {
       nextCalled = true;
     });
-    assert.equal(nextCalled, false);
-    assert.equal(res.statusCode, 403);
+    A.eq(res.statusCode, 403, 'status');
+    A.isFalse(nextCalled, 'next()');
   });
 
   it('allows superadmin', () => {
-    const req = { user: { role: 'superadmin', sub: 'a1' } };
     const res = mockRes();
     let nextCalled = false;
-    requirePermission('notify:send')(req, res, () => {
+    requirePermission('notify:send')({ user: { role: 'superadmin', sub: 'a1' } }, res, () => {
       nextCalled = true;
     });
-    assert.equal(nextCalled, true);
+    A.isTrue(nextCalled, 'next()');
   });
 });
 
 describe('requireStaff', () => {
   it('blocks donor', () => {
-    const req = { user: { role: 'donor' } };
     const res = mockRes();
     let next = false;
-    requireStaff(req, res, () => {
+    requireStaff({ user: { role: 'donor' } }, res, () => {
       next = true;
     });
-    assert.equal(next, false);
-    assert.equal(res.statusCode, 403);
+    A.eq(res.statusCode, 403, 'status');
+    A.eq(res.body.reason, 'staff_only', 'reason');
+    A.isFalse(next, 'next()');
   });
 });

@@ -2,7 +2,6 @@
  * RBAC middleware integration — real JWT + requireAuth → permission chain.
  */
 const { describe, it, before } = require('node:test');
-const assert = require('node:assert/strict');
 const auth = require('../../src/services/auth');
 const {
   requireAuth,
@@ -10,6 +9,7 @@ const {
   requireStaff,
   requireRole,
 } = require('../../src/middleware/auth');
+const A = require('../helpers/assert');
 
 function mockRes() {
   return {
@@ -26,7 +26,6 @@ function mockRes() {
   };
 }
 
-/** Express-style middleware runner */
 function runChain(middlewares, req) {
   return new Promise((resolve) => {
     const res = mockRes();
@@ -67,17 +66,11 @@ function runChain(middlewares, req) {
 }
 
 function reqWithToken(token) {
-  return {
-    headers: token ? { authorization: `Bearer ${token}` } : {},
-  };
+  return { headers: token ? { authorization: `Bearer ${token}` } : {} };
 }
 
 function tokenFor(role, username = role) {
-  return auth.signJwt({
-    sub: `id-${username}`,
-    username,
-    role,
-  });
+  return auth.signJwt({ sub: `id-${username}`, username, role });
 }
 
 describe('RBAC middleware integration (JWT pipeline)', () => {
@@ -93,116 +86,107 @@ describe('RBAC middleware integration (JWT pipeline)', () => {
     seekerToken = tokenFor('seeker', 'seeker1');
   });
 
-  it('unauthenticated request blocked by requireAuth', async () => {
+  it('blocks request with no Authorization header', async () => {
     const out = await runChain([requireAuth, requirePermission('notify:send')], reqWithToken(null));
-    assert.equal(out.status, 401);
-    assert.equal(out.nextReached, false);
+    A.deniesWith(out, 401, 'Unauthorized');
   });
 
-  it('invalid token blocked', async () => {
+  it('blocks malformed JWT', async () => {
     const out = await runChain(
       [requireAuth, requirePermission('notify:send')],
       reqWithToken('not.a.jwt')
     );
-    assert.equal(out.status, 401);
-    assert.equal(out.nextReached, false);
+    A.deniesWith(out, 401, 'Unauthorized');
   });
 
-  it('donor JWT passes auth but fails notify:send', async () => {
+  it('authenticates donor then denies notify:send', async () => {
     const out = await runChain(
       [requireAuth, requirePermission('notify:send')],
       reqWithToken(donorToken)
     );
-    assert.ok(out.user);
-    assert.equal(out.user.role, 'donor');
-    assert.equal(out.status, 403);
-    assert.equal(out.body.permission, 'notify:send');
-    assert.equal(out.nextReached, false);
+    A.chainOutcome(out, {
+      status: 403,
+      nextReached: false,
+      role: 'donor',
+      permission: 'notify:send',
+    });
   });
 
-  it('regional_admin JWT passes notify:send chain', async () => {
+  it('allows regional_admin through notify:send', async () => {
     const out = await runChain(
       [requireAuth, requirePermission('notify:send')],
       reqWithToken(regionalToken)
     );
-    assert.equal(out.user.role, 'regional_admin');
-    assert.equal(out.nextReached, true);
-    assert.equal(out.status, 200);
+    A.chainOutcome(out, { nextReached: true, role: 'regional_admin' });
+    A.allows(out);
   });
 
-  it('superadmin passes notify:events', async () => {
+  it('allows superadmin through notify:events', async () => {
     const out = await runChain(
       [requireAuth, requirePermission('notify:events')],
       reqWithToken(adminToken)
     );
-    assert.equal(out.nextReached, true);
+    A.allows(out);
   });
 
-  it('seeker cannot donations:create', async () => {
+  it('denies seeker donations:create', async () => {
     const out = await runChain(
       [requireAuth, requirePermission('donations:create')],
       reqWithToken(seekerToken)
     );
-    assert.equal(out.status, 403);
+    A.deniesWith(out, 403, 'donations:create');
   });
 
-  it('donor can donations:create', async () => {
+  it('allows donor donations:create', async () => {
     const out = await runChain(
       [requireAuth, requirePermission('donations:create')],
       reqWithToken(donorToken)
     );
-    assert.equal(out.nextReached, true);
+    A.allows(out);
   });
 
-  it('requireStaff blocks donor after auth', async () => {
+  it('requireStaff rejects donor with staff_only', async () => {
     const out = await runChain([requireAuth, requireStaff], reqWithToken(donorToken));
-    assert.equal(out.status, 403);
-    assert.equal(out.body.reason, 'staff_only');
+    A.deniesWith(out, 403, 'staff_only');
   });
 
-  it('requireStaff allows regional_admin', async () => {
+  it('requireStaff accepts regional_admin', async () => {
     const out = await runChain([requireAuth, requireStaff], reqWithToken(regionalToken));
-    assert.equal(out.nextReached, true);
+    A.allows(out);
   });
 
-  it('requireRole restricts to listed roles', async () => {
+  it('requireRole allows donor and rejects seeker', async () => {
     const chain = [requireAuth, requireRole('donor', 'corporate_csr')];
-    const ok = await runChain(chain, reqWithToken(donorToken));
-    assert.equal(ok.nextReached, true);
-    const bad = await runChain(chain, reqWithToken(seekerToken));
-    assert.equal(bad.status, 403);
+    A.allows(await runChain(chain, reqWithToken(donorToken)));
+    A.deniesWith(await runChain(chain, reqWithToken(seekerToken)), 403, 'Forbidden');
   });
 
-  it('admin alias in JWT normalizes for admin:users', async () => {
-    const tok = tokenFor('admin', 'legacy-admin');
+  it('normalizes JWT role admin → superadmin for admin:users', async () => {
     const out = await runChain(
       [requireAuth, requirePermission('admin:users')],
-      reqWithToken(tok)
+      reqWithToken(tokenFor('admin', 'legacy-admin'))
     );
-    assert.equal(out.user.role, 'superadmin');
-    assert.equal(out.nextReached, true);
+    A.chainOutcome(out, { nextReached: true, role: 'superadmin' });
   });
 });
 
 describe('Device register auth gate', () => {
-  it('register pipeline requires auth', async () => {
-    const out = await runChain([requireAuth], reqWithToken(null));
-    assert.equal(out.status, 401);
+  it('requires JWT', async () => {
+    A.deniesWith(await runChain([requireAuth], reqWithToken(null)), 401, 'Unauthorized');
   });
 
-  it('authenticated donor passes register auth gate', async () => {
-    const tok = tokenFor('donor', 'd2');
-    const out = await runChain([requireAuth], reqWithToken(tok));
-    assert.equal(out.nextReached, true);
-    assert.equal(out.user.sub, 'id-d2');
+  it('accepts donor JWT and exposes sub', async () => {
+    const out = await runChain([requireAuth], reqWithToken(tokenFor('donor', 'd2')));
+    A.allows(out);
+    A.eq(out.user.sub, 'id-d2', 'JWT sub');
   });
 });
 
-describe('Notifications route middleware stack (integration)', () => {
+describe('Notifications route middleware stack', () => {
   const notifyStack = [requireAuth, requirePermission('notify:send')];
   const eventsStack = [requireAuth, requirePermission('notify:events')];
 
-  it('matrix: role × notify:send', async () => {
+  it('role × notify:send matrix', async () => {
     const cases = [
       ['superadmin', true],
       ['regional_admin', true],
@@ -213,15 +197,21 @@ describe('Notifications route middleware stack (integration)', () => {
     ];
     for (const [role, allow] of cases) {
       const out = await runChain(notifyStack, reqWithToken(tokenFor(role)));
-      assert.equal(out.nextReached, allow, `${role} expected allow=${allow}`);
-      if (!allow) assert.equal(out.status, 403);
+      A.eq(out.nextReached, allow, `notify:send as ${role}`);
+      if (!allow) A.eq(out.status, 403, `${role} status`);
     }
   });
 
-  it('matrix: role × notify:events', async () => {
-    const outDonor = await runChain(eventsStack, reqWithToken(tokenFor('donor')));
-    assert.equal(outDonor.nextReached, false);
-    const outReg = await runChain(eventsStack, reqWithToken(tokenFor('regional_admin')));
-    assert.equal(outReg.nextReached, true);
+  it('role × notify:events matrix', async () => {
+    A.eq(
+      (await runChain(eventsStack, reqWithToken(tokenFor('donor')))).nextReached,
+      false,
+      'donor notify:events'
+    );
+    A.eq(
+      (await runChain(eventsStack, reqWithToken(tokenFor('regional_admin')))).nextReached,
+      true,
+      'regional_admin notify:events'
+    );
   });
 });

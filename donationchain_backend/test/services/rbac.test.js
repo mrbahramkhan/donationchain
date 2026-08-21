@@ -2,7 +2,6 @@
  * RBAC unit tests — normalizeRole, hasPermission matrix, isStaffRole.
  */
 const { describe, it } = require('node:test');
-const assert = require('node:assert/strict');
 const {
   ROLES,
   PERMISSIONS,
@@ -11,115 +10,116 @@ const {
   isStaffRole,
   requirePermission,
 } = require('../../src/rbac');
+const A = require('../helpers/assert');
 
 describe('normalizeRole', () => {
   it('maps admin aliases to superadmin', () => {
-    assert.equal(normalizeRole('admin'), ROLES.SUPER_ADMIN);
-    assert.equal(normalizeRole('super_admin'), ROLES.SUPER_ADMIN);
-    assert.equal(normalizeRole('Super Admin'), ROLES.SUPER_ADMIN);
+    A.eq(normalizeRole('admin'), ROLES.SUPER_ADMIN, 'admin');
+    A.eq(normalizeRole('super_admin'), ROLES.SUPER_ADMIN, 'super_admin');
+    A.eq(normalizeRole('Super Admin'), ROLES.SUPER_ADMIN, 'Super Admin');
   });
 
   it('maps needy/beneficiary/applicant to seeker', () => {
-    assert.equal(normalizeRole('needy'), ROLES.SEEKER);
-    assert.equal(normalizeRole('beneficiary'), ROLES.SEEKER);
-    assert.equal(normalizeRole('applicant'), ROLES.SEEKER);
+    A.eq(normalizeRole('needy'), ROLES.SEEKER, 'needy');
+    A.eq(normalizeRole('beneficiary'), ROLES.SEEKER, 'beneficiary');
+    A.eq(normalizeRole('applicant'), ROLES.SEEKER, 'applicant');
   });
 
   it('lowercases and underscores spaces', () => {
-    assert.equal(normalizeRole('Regional Admin'), 'regional_admin');
-    assert.equal(normalizeRole('DONOR'), 'donor');
+    A.eq(normalizeRole('Regional Admin'), 'regional_admin', 'Regional Admin');
+    A.eq(normalizeRole('DONOR'), 'donor', 'DONOR');
   });
 
-  it('returns null for empty', () => {
-    assert.equal(normalizeRole(null), null);
-    assert.equal(normalizeRole(''), null);
-    assert.equal(normalizeRole(undefined), null);
+  it('returns null for empty input', () => {
+    A.eq(normalizeRole(null), null, 'null');
+    A.eq(normalizeRole(''), null, 'empty string');
+    A.eq(normalizeRole(undefined), null, 'undefined');
   });
 });
 
 describe('hasPermission — superadmin bypass', () => {
-  it('superadmin has every known permission', () => {
+  it('grants every catalog permission', () => {
     for (const perm of Object.keys(PERMISSIONS)) {
-      assert.equal(hasPermission('superadmin', perm), true, perm);
-      assert.equal(hasPermission('admin', perm), true, perm);
+      A.permission('superadmin', perm, true);
+      A.permission('admin', perm, true);
     }
   });
 
-  it('superadmin has unknown permission keys too', () => {
-    assert.equal(hasPermission('superadmin', 'future:unknown_perm'), true);
+  it('grants unknown permission keys', () => {
+    A.permission('superadmin', 'future:unknown_perm', true);
   });
 });
 
 describe('hasPermission — notify matrix', () => {
-  it('only superadmin and regional_admin can notify:send', () => {
-    assert.equal(hasPermission('superadmin', 'notify:send'), true);
-    assert.equal(hasPermission('regional_admin', 'notify:send'), true);
-    assert.equal(hasPermission('donor', 'notify:send'), false);
-    assert.equal(hasPermission('seeker', 'notify:send'), false);
-    assert.equal(hasPermission('auditor', 'notify:send'), false);
-    assert.equal(hasPermission('verification_officer', 'notify:send'), false);
-    assert.equal(hasPermission('ngo', 'notify:send'), false);
+  it('allows only superadmin and regional_admin for notify:send', () => {
+    A.permission('superadmin', 'notify:send', true);
+    A.permission('regional_admin', 'notify:send', true);
+    A.permission('donor', 'notify:send', false);
+    A.permission('seeker', 'notify:send', false);
+    A.permission('auditor', 'notify:send', false);
+    A.permission('verification_officer', 'notify:send', false);
+    A.permission('ngo', 'notify:send', false);
   });
 
-  it('notify:events same staff gate', () => {
-    assert.equal(hasPermission('regional_admin', 'notify:events'), true);
-    assert.equal(hasPermission('donor', 'notify:events'), false);
+  it('gates notify:events the same way', () => {
+    A.permission('regional_admin', 'notify:events', true);
+    A.permission('donor', 'notify:events', false);
   });
 });
 
 describe('hasPermission — cases & donations', () => {
-  it('seeker can apply, donor cannot', () => {
-    assert.equal(hasPermission('seeker', 'cases:apply'), true);
-    assert.equal(hasPermission('needy', 'cases:apply'), true);
-    assert.equal(hasPermission('donor', 'cases:apply'), false);
+  it('seeker can apply; donor cannot', () => {
+    A.permission('seeker', 'cases:apply', true);
+    A.permission('needy', 'cases:apply', true);
+    A.permission('donor', 'cases:apply', false);
   });
 
-  it('donor can create donation, seeker cannot', () => {
-    assert.equal(hasPermission('donor', 'donations:create'), true);
-    assert.equal(hasPermission('corporate_csr', 'donations:create'), true);
-    assert.equal(hasPermission('seeker', 'donations:create'), false);
+  it('donor and CSR can create donations; seeker cannot', () => {
+    A.permission('donor', 'donations:create', true);
+    A.permission('corporate_csr', 'donations:create', true);
+    A.permission('seeker', 'donations:create', false);
   });
 
-  it('only admins approve cases', () => {
-    assert.equal(hasPermission('regional_admin', 'cases:approve'), true);
-    assert.equal(hasPermission('verification_officer', 'cases:approve'), false);
-    assert.equal(hasPermission('donor', 'cases:approve'), false);
+  it('only regional_admin and superadmin approve cases', () => {
+    A.permission('regional_admin', 'cases:approve', true);
+    A.permission('verification_officer', 'cases:approve', false);
+    A.permission('donor', 'cases:approve', false);
   });
 
-  it('auditor can read all donations, not create', () => {
-    assert.equal(hasPermission('auditor', 'donations:read_all'), true);
-    assert.equal(hasPermission('auditor', 'donations:create'), false);
+  it('auditor can read_all donations but not create', () => {
+    A.permission('auditor', 'donations:read_all', true);
+    A.permission('auditor', 'donations:create', false);
   });
 });
 
 describe('hasPermission — shariah & admin', () => {
-  it('shariah scholar board access', () => {
-    assert.equal(hasPermission('shariah_scholar', 'shariah:board'), true);
-    assert.equal(hasPermission('shariah_scholar', 'shariah:certificate'), true);
-    assert.equal(hasPermission('donor', 'shariah:certificate'), false);
+  it('shariah scholar can access board and certificates', () => {
+    A.permission('shariah_scholar', 'shariah:board', true);
+    A.permission('shariah_scholar', 'shariah:certificate', true);
+    A.permission('donor', 'shariah:certificate', false);
   });
 
-  it('only superadmin admin:users and admin:config', () => {
-    assert.equal(hasPermission('superadmin', 'admin:users'), true);
-    assert.equal(hasPermission('regional_admin', 'admin:users'), false);
-    assert.equal(hasPermission('regional_admin', 'admin:config'), false);
+  it('only superadmin can manage users and config', () => {
+    A.permission('superadmin', 'admin:users', true);
+    A.permission('regional_admin', 'admin:users', false);
+    A.permission('regional_admin', 'admin:config', false);
   });
 });
 
 describe('hasPermission — edge cases', () => {
-  it('unknown permission is false for non-superadmin', () => {
-    assert.equal(hasPermission('donor', 'does:not:exist'), false);
-    assert.equal(hasPermission('regional_admin', 'does:not:exist'), false);
+  it('unknown permission denied for non-superadmin', () => {
+    A.permission('donor', 'does:not:exist', false);
+    A.permission('regional_admin', 'does:not:exist', false);
   });
 
-  it('null role is false', () => {
-    assert.equal(hasPermission(null, 'notify:send'), false);
-    assert.equal(hasPermission('', 'cases:list_public'), false);
+  it('null/empty role always denied', () => {
+    A.permission(null, 'notify:send', false);
+    A.permission('', 'cases:list_public', false);
   });
 });
 
 describe('isStaffRole', () => {
-  it('staff roles', () => {
+  it('treats ops/compliance roles as staff', () => {
     for (const r of [
       'superadmin',
       'admin',
@@ -128,13 +128,13 @@ describe('isStaffRole', () => {
       'auditor',
       'shariah_scholar',
     ]) {
-      assert.equal(isStaffRole(r), true, r);
+      A.isTrue(isStaffRole(r), `staff:${r}`);
     }
   });
 
-  it('non-staff roles', () => {
+  it('treats public roles as non-staff', () => {
     for (const r of ['donor', 'seeker', 'ngo', 'vendor', 'volunteer', 'corporate_csr']) {
-      assert.equal(isStaffRole(r), false, r);
+      A.isFalse(isStaffRole(r), `non-staff:${r}`);
     }
   });
 });
@@ -155,59 +155,52 @@ describe('rbac requirePermission middleware', () => {
     };
   }
 
-  it('401 without user', () => {
+  it('responds 401 when req.user is missing', () => {
     const res = mockRes();
     let next = false;
     requirePermission('notify:send')({}, res, () => {
       next = true;
     });
-    assert.equal(res.statusCode, 401);
-    assert.equal(next, false);
+    A.eq(res.statusCode, 401, 'status');
+    A.isFalse(next, 'next() must not run');
   });
 
-  it('403 donor on notify:send', () => {
+  it('responds 403 when donor lacks notify:send', () => {
     const res = mockRes();
     let next = false;
     requirePermission('notify:send')({ user: { role: 'donor' } }, res, () => {
       next = true;
     });
-    assert.equal(res.statusCode, 403);
-    assert.equal(res.body.permission, 'notify:send');
-    assert.equal(next, false);
+    A.eq(res.statusCode, 403, 'status');
+    A.eq(res.body.permission, 'notify:send', 'body.permission');
+    A.isFalse(next, 'next() must not run');
   });
 
-  it('next() for regional_admin on notify:send', () => {
+  it('calls next() when regional_admin has notify:send', () => {
     const res = mockRes();
     let next = false;
     requirePermission('notify:send')({ user: { role: 'regional_admin' } }, res, () => {
       next = true;
     });
-    assert.equal(next, true);
-    assert.equal(res.statusCode, 200);
+    A.isTrue(next, 'next() must run');
+    A.eq(res.statusCode, 200, 'status unchanged');
   });
 });
 
 describe('PERMISSIONS catalog integrity', () => {
-  it('every permission lists only known role strings or valid names', () => {
+  it('lists only known role ids', () => {
     const known = new Set(Object.values(ROLES));
     for (const [perm, roles] of Object.entries(PERMISSIONS)) {
-      assert.ok(Array.isArray(roles), perm);
-      assert.ok(roles.length > 0, perm);
+      A.raw.ok(Array.isArray(roles) && roles.length > 0, `${perm} must be non-empty array`);
       for (const r of roles) {
-        assert.equal(typeof r, 'string', `${perm}:${r}`);
-        assert.ok(r.length > 0, `${perm} empty role`);
-        // catalog uses canonical role ids
-        assert.ok(
-          known.has(r) || r === 'superadmin',
-          `${perm} has unexpected role ${r}`
-        );
+        A.raw.ok(known.has(r), `${perm} contains unknown role "${r}"`);
       }
     }
   });
 
   it('exports stable role constants', () => {
-    assert.equal(ROLES.DONOR, 'donor');
-    assert.equal(ROLES.SEEKER, 'seeker');
-    assert.equal(ROLES.SHARIAH_SCHOLAR, 'shariah_scholar');
+    A.eq(ROLES.DONOR, 'donor', 'ROLES.DONOR');
+    A.eq(ROLES.SEEKER, 'seeker', 'ROLES.SEEKER');
+    A.eq(ROLES.SHARIAH_SCHOLAR, 'shariah_scholar', 'ROLES.SHARIAH_SCHOLAR');
   });
 });
