@@ -5,33 +5,39 @@
 const admin = require('firebase-admin');
 const path = require('path');
 const fs = require('fs');
+const { loadServiceAccount } = require('./firebaseCredentials');
 
 let initialized = false;
 
 function initFirebase() {
   if (initialized) return admin;
 
-  const credPath =
-    process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-    path.join(__dirname, '../../config/serviceAccountKey.json');
-
-  if (!fs.existsSync(credPath)) {
+  const loaded = loadServiceAccount();
+  if (!loaded) {
     console.warn(
-      '[FCM] serviceAccountKey.json not found. Set GOOGLE_APPLICATION_CREDENTIALS or place key at config/serviceAccountKey.json'
+      '[FCM] No credentials. Set FIREBASE_SERVICE_ACCOUNT (JSON) or GOOGLE_APPLICATION_CREDENTIALS (file path).'
     );
     console.warn('[FCM] Running in MOCK mode — notifications will be logged only.');
     return null;
   }
 
-  const serviceAccount = require(credPath);
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(loaded.serviceAccount),
+    });
+    initialized = true;
+    console.log('[FCM] Firebase Admin initialized via', loaded.source);
+    return admin;
+  } catch (e) {
+    console.warn('[FCM] initializeApp failed:', e.message);
+    console.warn('[FCM] Running in MOCK mode.');
+    return null;
+  }
+}
 
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-
-  initialized = true;
-  console.log('[FCM] Firebase Admin initialized');
-  return admin;
+/** True when real Firebase Admin is active (not mock). */
+function isFirebaseReady() {
+  return initialized === true;
 }
 
 /**
@@ -196,6 +202,8 @@ function stringifyData(data) {
 
 module.exports = {
   initFirebase,
+  loadServiceAccount,
+  isFirebaseReady,
   sendToToken,
   sendToTokens,
   sendToTopic,

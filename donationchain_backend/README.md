@@ -23,9 +23,12 @@ cd donationchain_backend
 npm install
 cp .env.example .env
 
-# Add Firebase service account:
-# Firebase Console → Project Settings → Service accounts → Generate key
-# Save as config/serviceAccountKey.json
+# Firebase credentials (pick one):
+# A) Railway: set FIREBASE_SERVICE_ACCOUNT to the full service-account JSON
+# B) Local file:
+#    Firebase Console → Project Settings → Service accounts → Generate key
+#    Save as config/serviceAccountKey.json
+#    or set GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
 
 npm start
 # → http://localhost:4000
