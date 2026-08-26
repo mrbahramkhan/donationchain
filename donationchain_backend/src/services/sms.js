@@ -206,7 +206,7 @@ async function sendSms({ to, template, params, body }) {
   return { ...result, entry };
 }
 
-/** Notify both sides when donation happens */
+/** Notify both sides when donation happens (spaced to reduce 20429 bursts) */
 async function notifyDonation({ donorPhone, beneficiaryPhone, amount, receiptId, caseTitle }) {
   const out = [];
   if (donorPhone) {
@@ -217,6 +217,10 @@ async function notifyDonation({ donorPhone, beneficiaryPhone, amount, receiptId,
         params: { amount, receiptId, caseTitle },
       })
     );
+  }
+  if (donorPhone && beneficiaryPhone) {
+    // small gap between two Twilio calls
+    await sleep(Number(process.env.SMS_NOTIFY_GAP_MS || 400));
   }
   if (beneficiaryPhone) {
     out.push(
@@ -236,4 +240,7 @@ module.exports = {
   loadLog,
   normalizePkPhone,
   templates,
+  isRateLimited,
+  retryAfterMs,
+  sleep,
 };

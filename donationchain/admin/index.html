@@ -978,13 +978,19 @@
             (e.template || "—") +
             "</td>" +
             '<td class="px-3 py-2 text-xs">' +
-            (e.offline ? "offline" : e.mock ? "mock" : "sent") +
+            (e.code || "—") +
+            "</td>" +
+            '<td class="px-3 py-2 text-xs">' +
+            (e.attempts || 1) +
+            "</td>" +
+            '<td class="px-3 py-2 text-xs">' +
+            (e.offline ? "offline" : e.mock ? "mock" : e.ok === false ? "fail" : "sent") +
             "</td></tr>"
         )
         .join("");
       box.innerHTML =
         '<div class="card overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b text-left text-slate-500">' +
-        '<th class="px-3 py-2 font-medium">Time</th><th class="px-3 py-2 font-medium">To</th><th class="px-3 py-2 font-medium">Template</th><th class="px-3 py-2 font-medium">Status</th>' +
+        '<th class="px-3 py-2 font-medium">Time</th><th class="px-3 py-2 font-medium">To</th><th class="px-3 py-2 font-medium">Template</th><th class="px-3 py-2 font-medium">Code</th><th class="px-3 py-2 font-medium">Tries</th><th class="px-3 py-2 font-medium">Status</th>' +
         "</tr></thead><tbody class=\"divide-y\">" +
         rows +
         "</tbody></table></div>";
@@ -995,6 +1001,24 @@
       const list = DCForms.listApplications();
       const app = list.find((x) => x.id === id);
       DCForms.updateApplicationStatus(id, status);
+      // Server sync when admin JWT available
+      try {
+        const jwt = window.AdminAuth && AdminAuth.getJwt && AdminAuth.getJwt();
+        const base =
+          (window.DCSMS && DCSMS.apiBase && DCSMS.apiBase()) ||
+          localStorage.getItem("dc_api_base") ||
+          "http://localhost:4000";
+        if (jwt) {
+          await fetch(String(base).replace(/\/$/, "") + "/api/cases/applications/" + encodeURIComponent(id) + "/status", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + jwt,
+            },
+            body: JSON.stringify({ status }),
+          });
+        }
+      } catch (_) {}
       if (window.DCSMS && app && app.applicant && app.applicant.phone) {
         try {
           await DCSMS.notifyApplication({ phone: app.applicant.phone, id, status });
@@ -1003,6 +1027,7 @@
       }
       loadApplications();
     }
+
 
     function adminLogout() {
       if (window.AdminAuth) AdminAuth.logout();

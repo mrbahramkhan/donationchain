@@ -325,6 +325,42 @@ const DCForms = (() => {
       all.unshift(record);
       save(CASES_KEY, all);
     }
+
+    // Best-effort sync to backend (does not block success if offline)
+    try {
+      const base =
+        (window.DCSMS && DCSMS.apiBase && DCSMS.apiBase()) ||
+        (localStorage.getItem("dc_api_base") || "http://localhost:4000").replace(/\/$/, "");
+      const payload = {
+        fullName: data.fullName,
+        phone: data.phone,
+        city: data.city,
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        urgency: data.urgency,
+        amountNeeded: data.amountNeeded,
+        vendorName: data.vendorName || null,
+        cnic: data.cnic || undefined,
+      };
+      const res = await fetch(base + "/api/cases/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (body.application && body.application.id) {
+          record.serverId = body.application.id;
+          record.synced = true;
+        }
+      } else {
+        record.synced = false;
+      }
+    } catch (_) {
+      record.synced = false;
+    }
+
     // Return full record to the applicant only (success screen); never render raw PII on public lists
     return record;
   }

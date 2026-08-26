@@ -51,3 +51,21 @@ describe('SMS mock-mode send (SMS_PROVIDER=mock)', () => {
     }
   });
 });
+
+
+describe("SMS rate-limit helpers (20429)", () => {
+  it("detects 429 and 20429", (t) => {
+    if (!sms || !sms.isRateLimited) return t.skip("helpers not exported");
+    assert.equal(sms.isRateLimited({ status: 429 }, {}), true);
+    assert.equal(sms.isRateLimited({ status: 400 }, { code: 20429 }), true);
+    assert.equal(sms.isRateLimited({ status: 400 }, { code: 21211 }), false);
+  });
+
+  it("backoff grows with attempt", (t) => {
+    if (!sms || !sms.retryAfterMs) return t.skip("helpers not exported");
+    const a0 = sms.retryAfterMs(null, null, 0);
+    const a2 = sms.retryAfterMs(null, null, 2);
+    assert.ok(a0 >= 1000 && a0 < 2000);
+    assert.ok(a2 >= 4000 && a2 < 5000);
+  });
+});

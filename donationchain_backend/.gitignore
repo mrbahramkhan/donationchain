@@ -2,3 +2,7 @@ node_modules/
 .env
 config/serviceAccountKey.json
 *.log
+
+# Runtime data (PII, logs, hashes)
+data/*.json
+!data/.gitkeep

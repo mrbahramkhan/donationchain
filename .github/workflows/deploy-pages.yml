@@ -53,7 +53,7 @@ jobs:
             index.html js/app.js js/config.js js/i18n.js js/ledger.js js/merkle.js
             admin/index.html admin/login.html
             apply.html
-            js/forms.js js/zakat.js
+            js/forms.js js/sms.js js/zakat.js
             donor/dashboard.html donor/register.html explorer.html
             manifest.json sw.js css/rtl.css
             js/admin-auth.js

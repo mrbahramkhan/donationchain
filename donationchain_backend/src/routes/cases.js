@@ -130,6 +130,27 @@ router.get('/applications/public', (_req, res) => {
   res.json({ ok: true, applications: publicList });
 });
 
+
+/** Review status — verification / admin */
+router.patch(
+  '/applications/:id/status',
+  requireAuth,
+  requirePermission('cases:applications_admin'),
+  (req, res) => {
+    const app = applications.find((a) => a.id === req.params.id);
+    if (!app) return res.status(404).json({ error: 'not found' });
+    const status = String(req.body.status || '').trim();
+    const allowed = ['pending_review', 'approved', 'rejected'];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ error: 'status must be pending_review|approved|rejected' });
+    }
+    app.status = status;
+    app.reviewedAt = new Date().toISOString();
+    app.reviewedBy = req.user.username || req.user.sub;
+    res.json({ ok: true, application: app });
+  }
+);
+
 /** Zakat eligibility — verification staff */
 router.patch(
   '/applications/:id/zakat-eligibility',
