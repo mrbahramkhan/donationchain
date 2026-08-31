@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /admin/
+Disallow: /donor/dashboard.html
+
 Sitemap: https://donationchain.pk/sitemap.xml

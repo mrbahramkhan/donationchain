@@ -1,0 +1,5 @@
+Contact: mailto:support@donationchain.pk
+Preferred-Languages: en, ur
+Canonical: https://donationchain.pk/.well-known/security.txt
+Policy: https://donationchain.pk/
+Expires: 2027-12-31T23:59:59.000Z

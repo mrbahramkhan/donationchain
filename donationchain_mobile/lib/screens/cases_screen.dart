@@ -54,8 +54,15 @@ class _CasesScreenState extends State<CasesScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {},
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Demo tip',
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Demo: filters by category · Donate opens secure flow · OTP 123456'),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -114,14 +121,45 @@ class _CasesScreenState extends State<CasesScreen> {
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              itemCount: filtered.length,
-              itemBuilder: (ctx, i) {
-                final c = filtered[i];
-                return _caseCard(c);
-              },
-            ),
+            child: filtered.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.filter_list_off, size: 48, color: Colors.grey.shade400),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No cases in this category',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Try All or another filter. New verified cases appear after admin approval.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                          ),
+                          const SizedBox(height: 16),
+                          TextButton(
+                            onPressed: () => setState(() => filter = 'all'),
+                            child: const Text('Show all cases'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    itemCount: filtered.length,
+                    itemBuilder: (ctx, i) {
+                      final c = filtered[i];
+                      return _caseCard(c);
+                    },
+                  ),
           ),
         ],
       ),
