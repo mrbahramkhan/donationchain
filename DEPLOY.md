@@ -126,3 +126,23 @@ git push origin main
 ```
 
 Push ke baad Actions tab mein **Deploy Web to GitHub Pages** green hone do, phir live URL open karo.
+
+---
+
+## SHA-based cache busting
+
+Deploy workflow rewrites **local** asset URLs in `_site/**/*.html` only (source tree stays clean):
+
+- `js/*.js`, `css/*.css`, `manifest.json`, `sw.js` → `?v=<short-sha>`
+- CDN scripts (Tailwind, Font Awesome, etc.) **unchanged**
+- Service worker register path also versioned
+
+Example after deploy:
+
+```html
+<script src="js/app.js?v=a1b2c3d"></script>
+<link rel="stylesheet" href="css/theme.css?v=a1b2c3d" />
+```
+
+Local `python3 -m http.server` still uses unversioned paths — fine for development.
+

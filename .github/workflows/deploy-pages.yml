@@ -81,7 +81,44 @@ jobs:
           cp -a ${{ env.WEB_DIR }}/. _site/
           find _site -name '*.map' -delete 2>/dev/null || true
           find _site -type d -name node_modules -prune -exec rm -rf {} + 2>/dev/null || true
-          echo "<!-- deployed $(date -u +%Y-%m-%dT%H:%M:%SZ) ${{ github.sha }} -->" >> _site/index.html
+
+          # SHA-based cache busting for local JS/CSS/manifest/sw (HTML stays clean in source)
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          export SHORT_SHA
+          python3 << 'PY'
+          import os, re
+          from pathlib import Path
+          sha = os.environ["SHORT_SHA"]
+          root = Path("_site")
+          # Match local asset refs only (not http/https CDN)
+          patterns = [
+              # href="css/foo.css" or href="../css/foo.css" or "manifest.json"
+              (re.compile(
+                  r'(?<!https:)(?<!http:)(?P<prefix>(?:href|src)=["\'])'
+                  r'(?P<path>(?:\.\./)*(?:css|js)/[^"\']+\.(?:css|js)|(?:\.\./)*manifest\.json|(?:/)?sw\.js)'
+                  r'(?P<suffix>["\'])',
+                  re.I,
+              ), rf'\g<prefix>\g<path>?v={sha}\g<suffix>'),
+              # serviceWorker.register("/sw.js") or 'sw.js'
+              (re.compile(
+                  r'(serviceWorker\.register\(\s*["\'])(?P<path>/?sw\.js)(["\'])',
+                  re.I,
+              ), rf'\g<1>\g<path>?v={sha}\g<3>'),
+          ]
+          changed = 0
+          for html in root.rglob("*.html"):
+              text = html.read_text(encoding="utf-8")
+              orig = text
+              for rx, repl in patterns:
+                  text = rx.sub(repl, text)
+              if text != orig:
+                  html.write_text(text, encoding="utf-8")
+                  changed += 1
+                  print(f"  busted {html.relative_to(root)}")
+          print(f"Cache-bust SHA={sha} · HTML files updated: {changed}")
+          PY
+
+          echo "<!-- deployed $(date -u +%Y-%m-%dT%H:%M:%SZ) ${{ github.sha }} cache-bust=${SHORT_SHA} -->" >> _site/index.html
           echo "Site files: $(find _site -type f | wc -l)"
 
       - name: Upload Pages artifact
