@@ -97,15 +97,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (donations.isEmpty)
                     Card(
                       child: Padding(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(28),
                         child: Column(
                           children: [
-                            Icon(Icons.volunteer_activism, size: 48, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
+                            Icon(Icons.volunteer_activism, size: 52, color: Colors.grey.shade400),
+                            const SizedBox(height: 14),
                             Text(
-                              'No donations yet.\nBrowse cases and make your first impact!',
+                              'No donations yet',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Browse verified cases and make your first impact. Receipts and vendor proofs will show up here.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey.shade600),
+                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Demo tip: use Cases tab → Donate',
+                              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                             ),
                           ],
                         ),

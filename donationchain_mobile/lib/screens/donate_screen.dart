@@ -36,6 +36,7 @@ class _DonateScreenState extends State<DonateScreen> {
     }
     setState(() => loading = true);
     await Future.delayed(const Duration(milliseconds: 1400));
+    final receiptId = 'DC-${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase()}';
     final record = DonationRecord(
       id: DateTime.now().millisecondsSinceEpoch,
       amount: amount,
@@ -46,7 +47,7 @@ class _DonateScreenState extends State<DonateScreen> {
       anonymous: anonymous,
       date: DateTime.now(),
       status: 'completed',
-      proof: 'Vendor proof pending (within 48h)',
+      proof: 'Vendor proof pending (within 48h) · Receipt $receiptId',
     );
     await DataService.saveDonation(record);
     if (!mounted) return;
@@ -63,7 +64,9 @@ class _DonateScreenState extends State<DonateScreen> {
           ],
         ),
         content: Text(
-          'PKR ${amount.toStringAsFixed(0)} sent directly to verified vendor via ${methods[method]}.\n\nDigital receipt generated. Proof will appear in your Impact dashboard within 48 hours.',
+          'PKR ${amount.toStringAsFixed(0)} sent directly to verified vendor via ${methods[method]}.\n\n'
+          'Receipt ID: $receiptId\n\n'
+          'Digital receipt saved. Proof (invoice / photo) will appear in Your Impact within 48 hours. Funds never go to personal cash accounts.',
         ),
         actions: [
           TextButton(
@@ -71,7 +74,7 @@ class _DonateScreenState extends State<DonateScreen> {
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
-            child: const Text('Done'),
+            child: const Text('View Impact'),
           ),
         ],
       ),

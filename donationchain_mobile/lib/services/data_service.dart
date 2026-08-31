@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/donation_case.dart';
 
 class DataService {
+  /// Sample cases aligned with web (js/app.js) + backend for consistency.
   static final List<DonationCase> cases = [
     DonationCase(
       id: 1,
@@ -17,14 +18,14 @@ class DataService {
     ),
     DonationCase(
       id: 2,
-      title: 'School Fees — Fatima Class 8',
+      title: 'School Fees — Fatima, Class 8',
       category: 'education',
       city: 'Karachi',
       amount: 42000,
       raised: 28000,
       urgency: 'high',
       verified: true,
-      vendor: 'Beaconhouse',
+      vendor: 'Beaconhouse School',
     ),
     DonationCase(
       id: 3,
@@ -39,7 +40,7 @@ class DataService {
     ),
     DonationCase(
       id: 4,
-      title: 'Utility Bill (WAPDA) — Widow',
+      title: 'Utility Bill (WAPDA) — Widow Household',
       category: 'utility',
       city: 'Faisalabad',
       amount: 18500,
@@ -50,7 +51,7 @@ class DataService {
     ),
     DonationCase(
       id: 9,
-      title: 'SNGPL Gas Bill — Family',
+      title: 'SNGPL Gas Bill — Low-income Family',
       category: 'utility',
       city: 'Lahore',
       amount: 9200,
@@ -61,7 +62,7 @@ class DataService {
     ),
     DonationCase(
       id: 10,
-      title: 'Water Bill (WASA) — Orphan home',
+      title: 'Water Bill (WASA) — Orphan Household',
       category: 'utility',
       city: 'Multan',
       amount: 4500,
@@ -83,7 +84,7 @@ class DataService {
     ),
     DonationCase(
       id: 6,
-      title: 'University Semester Fee',
+      title: 'University Semester Fee — Hassan',
       category: 'education',
       city: 'Lahore',
       amount: 65000,
@@ -91,6 +92,28 @@ class DataService {
       urgency: 'medium',
       verified: true,
       vendor: 'UET Lahore',
+    ),
+    DonationCase(
+      id: 7,
+      title: 'Emergency Medicines — Elderly Couple',
+      category: 'medical',
+      city: 'Multan',
+      amount: 12000,
+      raised: 3500,
+      urgency: 'high',
+      verified: true,
+      vendor: 'Aga Khan Pharmacy',
+    ),
+    DonationCase(
+      id: 8,
+      title: 'Ramadan Ration Drive — 20 Families',
+      category: 'food',
+      city: 'Peshawar',
+      amount: 80000,
+      raised: 52000,
+      urgency: 'medium',
+      verified: true,
+      vendor: 'Local NGO Partner',
     ),
   ];
 
