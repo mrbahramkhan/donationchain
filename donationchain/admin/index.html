@@ -77,7 +77,8 @@
       </div>
       <nav class="p-2.5 space-y-0.5 text-[13px] flex-1 overflow-y-auto" id="side-nav">
         <p class="nav-section">Operations</p>
-        <button type="button" data-panel="overview" class="nav-item active w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300"><i class="fas fa-chart-pie w-4 text-slate-500"></i> Overview</button>
+        <button type="button" data-panel="overview" class="nav-item active w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300"><i class="fas fa-gauge-high w-4 text-slate-500"></i> Overview</button>
+        <button type="button" data-panel="analytics" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300"><i class="fas fa-chart-pie w-4 text-slate-500"></i> Analytics</button>
         <button type="button" data-panel="pipeline" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300"><i class="fas fa-columns w-4 text-slate-500"></i> Case pipeline</button>
         <button type="button" data-panel="applications" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300"><i class="fas fa-inbox w-4 text-slate-500"></i> Applications</button>
         <button type="button" data-panel="payments-log" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300"><i class="fas fa-money-bill-wave w-4 text-slate-500"></i> Payments</button>
@@ -87,6 +88,7 @@
         <button type="button" data-panel="donors-reg" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300"><i class="fas fa-hand-holding-heart w-4 text-slate-500"></i> Donors</button>
         <button type="button" data-panel="organizations" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300"><i class="fas fa-building-columns w-4 text-slate-500"></i> Organizations</button>
         <button type="button" data-panel="sms-log" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300"><i class="fas fa-comment-sms w-4 text-slate-500"></i> SMS log</button>
+        <button type="button" data-panel="support" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300"><i class="fas fa-headset w-4 text-slate-500"></i> Support inbox</button>
 
         <p class="nav-section">Compliance</p>
         <button type="button" data-panel="shariah" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300"><i class="fas fa-moon w-4 text-slate-500"></i> Shariah Board</button>
@@ -148,13 +150,14 @@
               <p class="text-xs text-warning mt-1 font-medium">12 critical</p>
             </div>
             <div class="card p-5">
-              <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Demo volume</p>
+              <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Donation volume</p>
               <p class="text-3xl font-extrabold mt-1 tracking-tight" id="live-volume">PKR 0</p>
               <p class="text-xs text-slate-400 mt-1" id="live-count">0 donations</p>
             </div>
             <div class="card p-5">
-              <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Fraud alerts</p>
-              <p class="text-3xl font-extrabold text-danger mt-1 tracking-tight">3</p>
+              <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Avg gift / Khamosh</p>
+              <p class="text-2xl font-extrabold mt-1 tracking-tight" id="live-avg">PKR 0</p>
+              <p class="text-xs text-slate-400 mt-1" id="live-anon">0% anonymous</p>
             </div>
             <div class="card p-5">
               <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Config</p>
@@ -171,6 +174,24 @@
             <button type="button" onclick="switchPanel('donors-reg')" class="card p-4 text-left hover:border-primary/40 transition"><p class="text-xs font-semibold text-slate-500 uppercase">Donors</p><p class="font-bold mt-1">Donor registry</p></button>
             <button type="button" onclick="switchPanel('roles')" class="card p-4 text-left hover:border-primary/40 transition"><p class="text-xs font-semibold text-slate-500 uppercase">Access</p><p class="font-bold mt-1">Roles &amp; permissions</p></button>
           </div>
+        </section>
+
+        <section id="panel-analytics" class="panel space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="text-sm font-bold text-slate-900">Donation analytics</p>
+              <p class="text-xs text-slate-500">Volume, methods, categories, khamosh rate, and trend from local donation ledger</p>
+            </div>
+            <div class="flex gap-2">
+              <select id="analytics-range" class="text-sm border border-slate-200 rounded-lg px-2 py-1.5 bg-white" onchange="refreshAnalytics()">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+              </select>
+              <button type="button" onclick="refreshAnalytics()" class="text-sm font-semibold border border-slate-200 bg-white px-3 py-1.5 rounded-lg hover:bg-slate-50">Refresh</button>
+            </div>
+          </div>
+          <div id="analytics-root"></div>
         </section>
 
         <section id="panel-pipeline" class="panel">
@@ -232,6 +253,11 @@
             <button type="button" onclick="loadSmsLog()" class="text-sm text-primary font-semibold">Refresh</button>
           </div>
           <div id="sms-log-list" class="text-sm"></div>
+        </section>
+
+        <section id="panel-support" class="panel">
+          <p class="text-sm text-slate-500 mb-3">Messages from the public contact form (stored in this browser for demo).</p>
+          <div id="support-list" class="space-y-3"></div>
         </section>
 
         <section id="panel-fraud" class="panel">
@@ -505,6 +531,8 @@
   <script src="../js/sms.js"></script>
   <script src="../js/organizations.js"></script>
   <script src="../js/config.js"></script>
+  <script src="../js/locales.js"></script>
+  <script src="../js/analytics.js"></script>
   <script src="../js/shariah.js"></script>
   <script src="../js/rbac.js"></script>
   <script>
@@ -516,6 +544,7 @@
 
     const titles = {
       overview: "Overview",
+      analytics: "Analytics",
       pipeline: "Case pipeline",
       applications: "Applications (seekers)",
       organizations: "Organizations",
@@ -554,6 +583,8 @@
     }
 
     function switchPanel(id) {
+      if (id === "analytics") try { refreshAnalytics(); } catch (_) {}
+
       document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
       document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
       const panel = document.getElementById("panel-" + id);
@@ -565,6 +596,7 @@
       if (id === "applications") loadApplications();
       if (id === "organizations") loadOrganizations();
       if (id === "donors-reg") loadDonorRegistry();
+      if (id === "support") loadSupportInbox();
       if (id === "sms-log") loadSmsLog();
       if (id === "shariah") refreshShariahAdmin();
       if (id === "roles") renderRolesPanel();
@@ -1115,15 +1147,56 @@
       reader.readAsText(file);
     }
 
+    function loadSupportInbox() {
+      const el = document.getElementById("support-list");
+      if (!el) return;
+      let list = [];
+      try { list = JSON.parse(localStorage.getItem("dc_support_messages") || "[]"); } catch (_) {}
+      if (!list.length) {
+        el.innerHTML = '<p class="text-sm text-slate-400">No support messages yet. Public form: <code>contact.html</code></p>';
+        return;
+      }
+      el.innerHTML = list.map(m => `
+        <div class="card p-4 text-sm">
+          <div class="flex justify-between gap-2 mb-1">
+            <span class="font-semibold text-slate-800">${(m.name || "—").replace(/</g,"")}</span>
+            <span class="text-xs text-slate-400 font-mono">${(m.id || "")}</span>
+          </div>
+          <p class="text-xs text-slate-500 mb-2">${(m.topic || "")} · ${(m.phone || "")} ${(m.email || "")} · ${m.at ? new Date(m.at).toLocaleString() : ""}</p>
+          <p class="text-slate-700 whitespace-pre-wrap">${(m.message || "").replace(/</g,"&lt;")}</p>
+        </div>`).join("");
+    }
+
     function loadLiveStats() {
       try {
-        const list = JSON.parse(localStorage.getItem("dc_donations") || "[]");
-        const total = list.reduce((s, d) => s + Number(d.amount || 0), 0);
-        const el = document.getElementById("live-volume");
-        const c = document.getElementById("live-count");
-        if (el) el.textContent = "PKR " + total.toLocaleString("en-PK");
-        if (c) c.textContent = list.length + " donations in this browser";
+        if (window.DCAnalytics) {
+          const s = DCAnalytics.compute({ days: 30 });
+          const el = document.getElementById("live-volume");
+          const c = document.getElementById("live-count");
+          const avg = document.getElementById("live-avg");
+          const anon = document.getElementById("live-anon");
+          if (el) el.textContent = s.formatPKR(s.totalAmount);
+          if (c) c.textContent = s.count + " donations in this browser";
+          if (avg) avg.textContent = s.formatPKR(Math.round(s.avg));
+          if (anon) anon.textContent = s.anonRate.toFixed(0) + "% anonymous (khamosh)";
+        } else {
+          const list = JSON.parse(localStorage.getItem("dc_donations") || "[]");
+          const total = list.reduce((s, d) => s + Number(d.amount || 0), 0);
+          const el = document.getElementById("live-volume");
+          const c = document.getElementById("live-count");
+          if (el) el.textContent = "PKR " + total.toLocaleString("en-PK");
+          if (c) c.textContent = list.length + " donations in this browser";
+        }
       } catch (_) {}
+    }
+
+    function refreshAnalytics() {
+      const range = document.getElementById("analytics-range");
+      const days = range ? Number(range.value || 30) : 30;
+      if (window.DCAnalytics) {
+        DCAnalytics.renderAdmin("analytics-root", { days });
+      }
+      loadLiveStats();
     }
 
     async function refreshShariahAdmin() {
@@ -1236,6 +1309,7 @@
     document.addEventListener("DOMContentLoaded", () => {
       fillForm(DCConfig.load());
       loadLiveStats();
+      try { refreshAnalytics(); } catch (_) {}
       refreshSecurityInfo();
       const apiEl = document.getElementById("sec-api-base");
       if (apiEl && window.AdminAuth) apiEl.value = AdminAuth.apiBase();

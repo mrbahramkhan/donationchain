@@ -8,10 +8,11 @@ const DCConfig = (() => {
   const defaults = {
     general: {
       platformName: "DonationChain",
-      tagline: "Every rupee tracked & proven",
-      supportEmail: "support@donationchain.pk",
-      supportPhone: "0800-12345",
-      defaultCurrency: "PKR",
+      tagline: "Transparent giving · donors meet people in need",
+      supportEmail: "support@donationchain.org",
+      supportPhone: "",
+      defaultCurrency: "USD",
+      defaultCountry: "GLOBAL",
       maintenanceMode: false,
     },
     donations: {
@@ -39,10 +40,17 @@ const DCConfig = (() => {
     },
     zakat: {
       ratePercent: 2.5,
+      /** Price of 1 gram pure gold in defaultCurrency — admin updates per market */
+      goldPricePerGram: 75,
+      silverPricePerGram: 0.95,
+      /** Legacy PK fields (still used when country=PK) */
       goldPricePerTola: 240000,
       silverPricePerTola: 2800,
       nisabGoldTola: 7.5,
+      /** AAOIFI-style grams (85); PK profile may use 87.48 */
+      nisabGoldGrams: 85,
       calculatorEnabled: true,
+      globalMode: true,
     },
     notifications: {
       pushEnabled: true,
@@ -72,9 +80,9 @@ const DCConfig = (() => {
       billPayment: true,
     },
     seo: {
-      siteTitle: "DonationChain — Transparent Donations",
-      metaDescription: "Zero middleman. Direct payments to hospitals, schools & vendors.",
-      canonicalUrl: "https://donationchain.pk/",
+      siteTitle: "DonationChain — Transparent Donations Worldwide",
+      metaDescription: "Global platform connecting donors and people in need. Institutional payouts. Multi-currency. Multi-language.",
+      canonicalUrl: "https://mrbahramkhan.github.io/donationchain/",
     },
   };
 

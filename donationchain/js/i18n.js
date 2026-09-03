@@ -1,5 +1,6 @@
 /**
- * DonationChain i18n — English / Urdu / Arabic
+ * DonationChain i18n — multi-language (en/ur/ar/fr/id/ms/tr/bn/hi/sw)
+ * Missing keys fall back to English.
  */
 const I18n = (() => {
   const KEY = "dc_lang";
@@ -17,8 +18,8 @@ const I18n = (() => {
       "nav.login": "Login",
       "nav.dashboard": "Dashboard",
       "nav.donate": "Donate",
-      "nav.needHelp": "Need help",
-      "nav.becomeDonor": "Donate",
+      "nav.needHelp": "Needy",
+      "nav.becomeDonor": "Donor",
       "footer.more": "More",
       // hero
       "hero.live": "Direct to hospitals, schools & vendors",
@@ -33,6 +34,11 @@ const I18n = (() => {
       "hero.recent": "Recent delivery proof",
       "hero.verified": "Verified",
       "hero.note": "Funds never go to personal cash accounts",
+      "hero.pathsHint": "This platform connects Donors and Needy people.",
+      "hero.ctaDonor": "Donor",
+      "hero.ctaDonorSub": "I want to give · Open cases & register",
+      "hero.ctaNeedy": "Needy",
+      "hero.ctaNeedySub": "I need help · Apply for support",
       // trust strip
       "trust.ai": "AI fraud screening",
       "trust.vendor": "Direct vendor payouts",
@@ -154,8 +160,8 @@ const I18n = (() => {
       "nav.login": "لاگ اِن",
       "nav.dashboard": "ڈیش بورڈ",
       "nav.donate": "عطیہ دیں",
-      "nav.needHelp": "مدد چاہیے",
-      "nav.becomeDonor": "ڈونر بنیں",
+      "nav.needHelp": "ضرورت مند",
+      "nav.becomeDonor": "ڈونر",
       "footer.more": "مزید",
       "hero.live": "لائیو · ۲.۸۴ ارب روپے مکمل آڈٹ کے ساتھ پہنچائے گئے",
       "hero.title1": "ہر روپیہ",
@@ -169,6 +175,11 @@ const I18n = (() => {
       "hero.recent": "حالیہ ڈیلیوری ثبوت",
       "hero.verified": "تصدیق شدہ",
       "hero.note": "فنڈز کبھی ذاتی نقد اکاؤنٹس میں نہیں جاتے",
+      "hero.pathsHint": "یہ پلیٹ فارم ڈونر اور ضرورت مندوں کو ملاتا ہے۔",
+      "hero.ctaDonor": "ڈونر",
+      "hero.ctaDonorSub": "میں دینا چاہتا ہوں · کیسز اور رجسٹر",
+      "hero.ctaNeedy": "ضرورت مند",
+      "hero.ctaNeedySub": "مجھے مدد چاہیے · سپورٹ کے لیے درخواست",
       "trust.ai": "اے آئی فراڈ اسکریننگ",
       "trust.vendor": "براہِ راست وینڈر ادائیگی",
       "trust.audit": "ڈیجیٹل آڈٹ ٹریل",
@@ -278,8 +289,8 @@ const I18n = (() => {
       "nav.login": "تسجيل الدخول",
       "nav.dashboard": "لوحة التحكم",
       "nav.donate": "تبرع",
-      "nav.needHelp": "أحتاج مساعدة",
-      "nav.becomeDonor": "كن متبرعاً",
+      "nav.needHelp": "محتاج",
+      "nav.becomeDonor": "متبرع",
       "footer.more": "المزيد",
       "footer.product": "المنتج",
       "footer.platform": "المنصة",
@@ -292,6 +303,11 @@ const I18n = (() => {
       "hero.donors": "المتبرعون",
       "hero.closed": "حالات مكتملة",
       "hero.fraud": "تقليل الاحتيال",
+      "hero.pathsHint": "هذه المنصة تربط المتبرعين والمحتاجين.",
+      "hero.ctaDonor": "متبرع",
+      "hero.ctaDonorSub": "أريد أن أتبرع · الحالات والتسجيل",
+      "hero.ctaNeedy": "محتاج",
+      "hero.ctaNeedySub": "أحتاج مساعدة · قدّم طلباً للدعم",
       "cases.title": "حالات موثقة",
       "cases.sub": "فحص بالذكاء الاصطناعي والموظفين. المدفوعات للمؤسسات المسجلة فقط.",
       "cases.search": "ابحث عن مدينة أو مستشفى أو مدرسة…",
@@ -311,6 +327,115 @@ const I18n = (() => {
       "lang.ur": "اردو",
       "lang.ar": "العربية",
     },
+
+    fr: {
+      "nav.cases": "Cas",
+      "nav.zakat": "Zakat",
+      "nav.login": "Connexion",
+      "nav.dashboard": "Tableau de bord",
+      "nav.needHelp": "Besoin d'aide",
+      "nav.becomeDonor": "Donateur",
+      "hero.ctaDonor": "Donateur",
+      "hero.ctaNeedy": "Besoin d'aide",
+      "hero.pathsHint": "Cette plateforme relie donateurs et personnes dans le besoin.",
+      "hero.title1": "Les donateurs rencontrent ceux qui ont besoin d'aide.",
+      "hero.sub": "Les paiements vont uniquement aux organisations vérifiées — jamais en espèces personnelles.",
+      "trust.zakat": "Conforme à la Zakat",
+      "zakat.title": "Calculateur de Zakat",
+      "zakat.calc": "Calculer la Zakat (Nisab + Hawl)",
+      "footer.product": "Produit",
+      "footer.more": "Plus",
+      "nav.how": "Comment ça marche",
+      "cases.donate": "Donner",
+    },
+    id: {
+      "nav.cases": "Kasus",
+      "nav.zakat": "Zakat",
+      "nav.login": "Masuk",
+      "nav.dashboard": "Dasbor",
+      "nav.needHelp": "Butuh bantuan",
+      "nav.becomeDonor": "Donatur",
+      "hero.ctaDonor": "Donatur",
+      "hero.ctaNeedy": "Butuh bantuan",
+      "hero.pathsHint": "Platform ini menghubungkan donatur dan orang yang membutuhkan.",
+      "hero.title1": "Donatur bertemu orang yang membutuhkan.",
+      "hero.sub": "Pembayaran hanya ke organisasi terverifikasi — bukan uang tunai pribadi.",
+      "trust.zakat": "Sesuai Zakat",
+      "zakat.title": "Kalkulator Zakat",
+      "zakat.calc": "Hitung Zakat (Nisab + Hawl)",
+      "footer.product": "Produk",
+      "footer.more": "Lainnya",
+      "nav.how": "Cara kerja",
+      "cases.donate": "Donasi",
+    },
+    ms: {
+      "nav.cases": "Kes",
+      "nav.zakat": "Zakat",
+      "nav.login": "Log masuk",
+      "nav.dashboard": "Papan pemuka",
+      "nav.needHelp": "Perlukan bantuan",
+      "nav.becomeDonor": "Penderma",
+      "hero.ctaDonor": "Penderma",
+      "hero.ctaNeedy": "Perlukan bantuan",
+      "hero.pathsHint": "Platform ini menghubungkan penderma dan mereka yang memerlukan.",
+      "zakat.title": "Kalkulator Zakat",
+      "zakat.calc": "Kira Zakat (Nisab + Hawl)",
+      "cases.donate": "Derma",
+    },
+    tr: {
+      "nav.cases": "Vakalar",
+      "nav.zakat": "Zekât",
+      "nav.login": "Giriş",
+      "nav.dashboard": "Panel",
+      "nav.needHelp": "Yardım gerekli",
+      "nav.becomeDonor": "Bağışçı",
+      "hero.ctaDonor": "Bağışçı",
+      "hero.ctaNeedy": "Yardım gerekli",
+      "hero.pathsHint": "Bu platform bağışçıları ihtiyaç sahipleriyle buluşturur.",
+      "zakat.title": "Zekât hesaplayıcı",
+      "zakat.calc": "Zekât hesapla (Nisab + Havl)",
+      "cases.donate": "Bağış yap",
+    },
+    bn: {
+      "nav.cases": "কেস",
+      "nav.zakat": "যাকাত",
+      "nav.login": "লগইন",
+      "nav.dashboard": "ড্যাশবোর্ড",
+      "nav.needHelp": "সাহায্য চাই",
+      "nav.becomeDonor": "দাতা",
+      "hero.ctaDonor": "দাতা",
+      "hero.ctaNeedy": "সাহায্য চাই",
+      "zakat.title": "যাকাত ক্যালকুলেটর",
+      "zakat.calc": "যাকাত হিসাব করুন",
+      "cases.donate": "দান করুন",
+    },
+    hi: {
+      "nav.cases": "केस",
+      "nav.zakat": "ज़कात",
+      "nav.login": "लॉगिन",
+      "nav.dashboard": "डैशबोर्ड",
+      "nav.needHelp": "मदद चाहिए",
+      "nav.becomeDonor": "दाता",
+      "hero.ctaDonor": "दाता",
+      "hero.ctaNeedy": "मदद चाहिए",
+      "zakat.title": "ज़कात कैलकुलेटर",
+      "zakat.calc": "ज़कात गणना करें",
+      "cases.donate": "दान करें",
+    },
+    sw: {
+      "nav.cases": "Kesi",
+      "nav.zakat": "Zaka",
+      "nav.login": "Ingia",
+      "nav.dashboard": "Dashibodi",
+      "nav.needHelp": "Nahitaji msaada",
+      "nav.becomeDonor": "Mfadhili",
+      "hero.ctaDonor": "Mfadhili",
+      "hero.ctaNeedy": "Nahitaji msaada",
+      "zakat.title": "Kikokotoo cha Zaka",
+      "zakat.calc": "Kokotoa Zaka",
+      "cases.donate": "Changia",
+    },
+
   };
 
   const SUPPORTED = ["en", "ur", "ar"];
@@ -321,15 +446,26 @@ const I18n = (() => {
   }
 
   function setLang(lang) {
-    const l = SUPPORTED.includes(lang) ? lang : "en";
-    localStorage.setItem(KEY, l);
+    const supported = ["en","ur","ar","fr","id","ms","tr","bn","hi","sw"];
+    if (!supported.includes(lang)) lang = "en";
+    try { localStorage.setItem(KEY, lang); } catch (_) {}
+    document.documentElement.lang = lang;
+    const rtl = lang === "ur" || lang === "ar";
+    document.documentElement.dir = rtl ? "rtl" : "ltr";
     apply();
-    return getLang();
+    try {
+      const sel = document.getElementById("lang-select");
+      if (sel) sel.value = lang;
+    } catch (_) {}
+    return lang;
   }
 
   function t(key) {
     const lang = getLang();
-    return (dict[lang] && dict[lang][key]) || (dict.en && dict.en[key]) || key;
+    const d = dict[lang] || dict.en;
+    if (d && d[key] != null) return d[key];
+    if (dict.en && dict.en[key] != null) return dict.en[key];
+    return key;
   }
 
   function apply() {

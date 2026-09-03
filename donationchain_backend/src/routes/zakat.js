@@ -9,9 +9,13 @@ const config = {
   ratePercent: 2.5,
   goldPricePerTola: Number(process.env.ZAKAT_GOLD_PER_TOLA) || 240000,
   silverPricePerTola: Number(process.env.ZAKAT_SILVER_PER_TOLA) || 2800,
+  goldPricePerGram: Number(process.env.ZAKAT_GOLD_PER_GRAM) || 75,
+  silverPricePerGram: Number(process.env.ZAKAT_SILVER_PER_GRAM) || 0.95,
   nisabGoldTola: 7.5,
   lunarYearDays: 354.367,
-  nisabGoldGrams: 87.48,
+  nisabGoldGrams: Number(process.env.ZAKAT_NISAB_GOLD_GRAMS) || 85,
+  globalMode: true,
+  note: "Country profiles on the client select currency and Nisab grams; admin sets metal prices.",
 };
 
 router.get('/config', (_req, res) => {

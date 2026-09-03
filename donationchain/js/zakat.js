@@ -71,22 +71,60 @@ const DCZakat = (() => {
 
   /* ── config ──────────────────────────────────────────── */
 
-  function getConfig() {
-    const z = window.DCConfig ? DCConfig.load().zakat : {};
+  function getCountryProfile() {
+    if (window.DCLocales && DCLocales.getCountry) return DCLocales.getCountry();
     return {
-      ratePercent: z.ratePercent != null ? Number(z.ratePercent) : 2.5,
-      goldPricePerTola: Number(z.goldPricePerTola) || 240000,
-      silverPricePerTola: Number(z.silverPricePerTola) || 2800,
-      nisabGoldTola: z.nisabGoldTola != null ? Number(z.nisabGoldTola) : 7.5,
-      // 7.5 tola ≈ 87.48 g (7.5 * 11.664 ≈ 87.48)
+      currency: "USD",
+      currencySymbol: "$",
+      goldUnit: "gram",
+      goldGramsPerUnit: 1,
+      nisabGoldGrams: 85,
     };
   }
 
-  /** Nisab in PKR using gold standard */
+  function getConfig() {
+    const z = window.DCConfig ? DCConfig.load().zakat : {};
+    const country = getCountryProfile();
+    const goldPerGram =
+      Number(z.goldPricePerGram) ||
+      (country.currency === "PKR"
+        ? (Number(z.goldPricePerTola) || 240000) / GOLD_GRAMS_PER_TOLA
+        : 75);
+    const silverPerGram =
+      Number(z.silverPricePerGram) ||
+      (country.currency === "PKR"
+        ? (Number(z.silverPricePerTola) || 2800) / GOLD_GRAMS_PER_TOLA
+        : 0.95);
+    return {
+      ratePercent: z.ratePercent != null ? Number(z.ratePercent) : 2.5,
+      goldPricePerGram: goldPerGram,
+      silverPricePerGram: silverPerGram,
+      goldPricePerTola: Number(z.goldPricePerTola) || goldPerGram * GOLD_GRAMS_PER_TOLA,
+      silverPricePerTola: Number(z.silverPricePerTola) || silverPerGram * GOLD_GRAMS_PER_TOLA,
+      nisabGoldTola: z.nisabGoldTola != null ? Number(z.nisabGoldTola) : 7.5,
+      nisabGoldGrams:
+        country.nisabGoldGrams ||
+        (z.nisabGoldGrams != null ? Number(z.nisabGoldGrams) : 85),
+      currency: country.currency || "USD",
+      currencySymbol: country.currencySymbol || "$",
+      goldUnit: country.goldUnit || "gram",
+      countryName: country.name || "International",
+    };
+  }
+
+  /** Nisab in local currency using gold standard (country profile) */
   function calcNisabPkr(cfg) {
-    // Prefer explicit grams; fallback to admin tola setting
-    const tola = cfg.nisabGoldTola || NISAB_GOLD_GRAMS / GOLD_GRAMS_PER_TOLA;
-    return Math.round(tola * (cfg.goldPricePerTola || 240000));
+    const c = cfg || getConfig();
+    const grams = c.nisabGoldGrams || NISAB_GOLD_GRAMS;
+    return Math.round(grams * (c.goldPricePerGram || 75));
+  }
+
+  function formatZakatMoney(n, cfg) {
+    const c = cfg || getConfig();
+    if (window.DCLocales && DCLocales.formatMoney) {
+      return DCLocales.formatMoney(n, window.DCLocales.getCountryCode());
+    }
+    return (c.currencySymbol || c.currency || "") + " " + Number(n || 0).toLocaleString();
   }
 
   /* ── core calculation ────────────────────────────────── */
@@ -104,8 +142,19 @@ const DCZakat = (() => {
   function calculate(assets, opts) {
     opts = opts || {};
     const cfg = getConfig();
-    const goldValue = (Number(assets.goldTola) || 0) * cfg.goldPricePerTola;
-    const silverValue = (Number(assets.silverTola) || 0) * cfg.silverPricePerTola;
+    // Accept goldTola (PK) or goldGrams (global)
+    let goldValue = 0;
+    if (assets.goldGrams != null && Number(assets.goldGrams) > 0) {
+      goldValue = Number(assets.goldGrams) * cfg.goldPricePerGram;
+    } else {
+      goldValue = (Number(assets.goldTola) || 0) * cfg.goldPricePerTola;
+    }
+    let silverValue = 0;
+    if (assets.silverGrams != null && Number(assets.silverGrams) > 0) {
+      silverValue = Number(assets.silverGrams) * cfg.silverPricePerGram;
+    } else {
+      silverValue = (Number(assets.silverTola) || 0) * cfg.silverPricePerTola;
+    }
     const cash = Number(assets.cash) || 0;
     const business = Number(assets.business) || 0;
     const liabilities = Number(assets.liabilities) || 0;
@@ -141,6 +190,11 @@ const DCZakat = (() => {
       hawl,
       goldPricePerTola: cfg.goldPricePerTola,
       silverPricePerTola: cfg.silverPricePerTola,
+      goldPricePerGram: cfg.goldPricePerGram,
+      currency: cfg.currency,
+      currencySymbol: cfg.currencySymbol,
+      countryName: cfg.countryName,
+      nisabGoldGrams: cfg.nisabGoldGrams,
       calculatedAt: iso(now()),
     };
 
@@ -343,6 +397,8 @@ const DCZakat = (() => {
     getStatus,
     calcNisabPkr,
     getConfig,
+    formatZakatMoney,
+    getCountryProfile,
     resetHawlForDemo,
     LUNAR_YEAR_DAYS,
     NISAB_GOLD_GRAMS,

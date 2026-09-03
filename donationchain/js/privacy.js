@@ -11,6 +11,18 @@ const DCPrivacy = (() => {
   const PUBLIC_CASES_KEY = "dc_case_applications"; // public-safe projection only
   const PRIVATE_DONORS_KEY = "dc_donor_profiles_private";
 
+  /** Opaque retention key — not reversible to phone/name in UI */
+  function donorKey(profile) {
+    const raw =
+      (profile && (profile.id || profile.phone || profile.email || profile.name)) ||
+      "";
+    if (!raw) return null;
+    let h = 0;
+    const s = String(raw).toLowerCase().trim();
+    for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+    return "dk_" + (h >>> 0).toString(16);
+  }
+
   function maskPhone(phone) {
     const s = String(phone || "").replace(/\D/g, "");
     if (s.length < 4) return "••••";
@@ -153,9 +165,117 @@ const DCPrivacy = (() => {
   }
 
   function receiptDisplayName(record) {
-    if (record && record.anonymous) return "Anonymous donor";
-    if (record && record.donorName) return maskName(record.donorName);
+    if (record && (record.anonymous || record.privacyMode === "anonymous")) {
+      return "Anonymous donor";
+    }
+    if (record && record.publicName) return record.publicName;
+    if (record && record.donorName && record.donorName !== "Anonymous donor") {
+      return maskName(record.donorName);
+    }
     return "Donor";
+  }
+
+  /** Label for any public list / feed / leaderboard */
+  function publicDonorLabel(record) {
+    if (!record) return "Anonymous donor";
+    if (record.anonymous || record.privacyMode === "anonymous" || record.hideName) {
+      return "Anonymous donor";
+    }
+    return receiptDisplayName(record);
+  }
+
+  function getPreferAnonymous() {
+    try {
+      const u = JSON.parse(localStorage.getItem("dc_user") || "null");
+      if (u && u.preferAnonymous) return true;
+      return localStorage.getItem("dc_prefer_anonymous") === "1";
+    } catch {
+      return localStorage.getItem("dc_prefer_anonymous") === "1";
+    }
+  }
+
+  function setPreferAnonymous(on) {
+    const v = !!on;
+    localStorage.setItem("dc_prefer_anonymous", v ? "1" : "0");
+    try {
+      const u = JSON.parse(localStorage.getItem("dc_user") || "null") || {};
+      u.preferAnonymous = v;
+      localStorage.setItem("dc_user", JSON.stringify(u));
+    } catch (_) {}
+    return v;
+  }
+
+  /** Build public-safe donation record (no real name/phone when anonymous) */
+  function toPublicDonation(record, donorProfile) {
+    const anon = !!(record && (record.anonymous || record.privacyMode === "anonymous"));
+    const base = {
+      id: record.id,
+      amount: record.amount,
+      method: record.method,
+      case: record.case,
+      caseId: record.caseId,
+      city: record.city,
+      vendor: record.vendor,
+      date: record.date,
+      status: record.status,
+      proof: record.proof,
+      anonymous: anon,
+      privacyMode: anon ? "anonymous" : "named",
+      blockHash: record.blockHash,
+      blockIndex: record.blockIndex,
+      providerRef: record.providerRef,
+      paymentMode: record.paymentMode,
+      category: record.category,
+      platformFeePercent: record.platformFeePercent,
+    };
+    if (anon) {
+      base.donorName = "Anonymous donor";
+      base.publicName = "Anonymous donor";
+      base.donorRef = "ANON";
+      // unique key per gift — do not link anonymous gifts for public retention
+      base.donorKey = "anon_" + String(record.id || Math.random().toString(36).slice(2));
+    } else {
+      const name =
+        (donorProfile && donorProfile.name) ||
+        record.donorName ||
+        (function () {
+          try {
+            const u = JSON.parse(localStorage.getItem("dc_user") || "null");
+            return u && (u.name || u.phone);
+          } catch {
+            return null;
+          }
+        })();
+      let profile = donorProfile || {};
+      try {
+        const u = JSON.parse(localStorage.getItem("dc_user") || "null");
+        if (u) profile = { id: u.id, phone: u.phone, email: u.email, name: u.name, ...profile };
+      } catch (_) {}
+      base.donorName = name ? maskName(name) : "Donor";
+      base.publicName = base.donorName;
+      base.donorRef = "REGISTERED";
+      base.donorKey = donorKey(profile) || donorKey({ name: name }) || "dk_unknown";
+    }
+    return base;
+  }
+
+  function savePrivateDonationMeta(record, realName, realPhone) {
+    if (!record || !record.anonymous) return;
+    try {
+      const key = "dc_donations_private";
+      const all = JSON.parse(localStorage.getItem(key) || "[]");
+      all.unshift({
+        id: record.id,
+        realName: realName || null,
+        realPhone: realPhone || null,
+        amount: record.amount,
+        date: record.date,
+        access: "self_and_admin_only",
+      });
+      localStorage.setItem(key, JSON.stringify(all.slice(0, 300)));
+    } catch (e) {
+      console.warn("DCPrivacy: private donation meta failed", e);
+    }
   }
 
   /** Never put beneficiary phone on donation receipt UI */
@@ -180,7 +300,8 @@ const DCPrivacy = (() => {
     version: "1.0",
     summary: [
       "Seekers: phone, CNIC, address, and documents are never shown on public case cards.",
-      "Donors: optional anonymous giving; CNIC/email not shown publicly.",
+      "Donors: optional anonymous (khamosh) giving — name never appears on public lists or shared receipts.",
+      "Donors: CNIC/email not shown publicly.",
       "Payments go only to verified institutions — never to personal mobile wallets of seekers.",
       "Direct messaging between donor and seeker is not enabled by default.",
       "Admin / verification staff can access private records only for review.",
@@ -192,12 +313,18 @@ const DCPrivacy = (() => {
     maskCnic,
     maskName,
     maskIban,
+    donorKey,
     toPublicApplication,
     storeApplicationWithPrivacy,
     savePrivateDonor,
     toPublicDonor,
     receiptDisplayName,
+    publicDonorLabel,
     sanitizeDonationForDisplay,
+    toPublicDonation,
+    savePrivateDonationMeta,
+    getPreferAnonymous,
+    setPreferAnonymous,
     POLICY,
     PRIVATE_APPS_KEY,
     PUBLIC_CASES_KEY,

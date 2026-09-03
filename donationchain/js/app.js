@@ -188,40 +188,111 @@ function closeLogin() {
   document.body.style.overflow = "";
 }
 
-function sendOTP() {
+async function sendOTP() {
   const phone = (document.getElementById("login-phone")?.value || "").trim();
   if (phone.length < 10) {
     showToast(typeof t === "function" ? t("toast.phone") : "Enter a valid mobile number");
     return;
   }
-  document.getElementById("otp-section")?.classList.remove("hidden");
-  showToast(typeof t === "function" ? t("toast.otp") : "OTP sent (Demo: 123456)");
+  const roleEl = document.querySelector('input[name="login-role"]:checked');
+  const role = roleEl ? roleEl.value : "donor";
+  const btn = document.querySelector('#login-modal button[onclick="sendOTP()"]');
+  if (btn) { btn.disabled = true; btn.textContent = "Sending…"; }
+  try {
+    if (window.DCAuth) {
+      const data = await DCAuth.requestOtp(phone, role);
+      document.getElementById("otp-section")?.classList.remove("hidden");
+      const hint = data.code
+        ? ("OTP sent · Demo code: " + data.code)
+        : (typeof t === "function" ? t("toast.otp") : "OTP sent to your phone");
+      showToast(hint);
+      if (data.code) {
+        const otpInput = document.getElementById("login-otp");
+        if (otpInput && data.mock) otpInput.placeholder = "Code: " + data.code;
+      }
+    } else {
+      document.getElementById("otp-section")?.classList.remove("hidden");
+      showToast(typeof t === "function" ? t("toast.otp") : "OTP sent (Demo: 123456)");
+    }
+  } catch (e) {
+    document.getElementById("otp-section")?.classList.remove("hidden");
+    showToast(e.message || "Could not send OTP — try demo 123456");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = typeof t === "function" ? t("login.send") : "Send OTP"; }
+  }
 }
 
-function verifyOTP() {
+async function verifyOTP() {
   const otp = (document.getElementById("login-otp")?.value || "").trim();
-  if (otp !== "123456") {
-    showToast(typeof t === "function" ? t("toast.badOtp") : "Invalid OTP");
+  const phone = (document.getElementById("login-phone")?.value || "").trim();
+  const name = (document.getElementById("login-name")?.value || "").trim();
+  const roleEl = document.querySelector('input[name="login-role"]:checked');
+  const role = roleEl ? roleEl.value : "donor";
+  if (!otp || otp.length < 4) {
+    showToast(typeof t === "function" ? t("toast.badOtp") : "Enter OTP");
     return;
   }
-  const phone = document.getElementById("login-phone")?.value || "03001234567";
-  DC.user = { phone, name: "Demo Donor", loggedInAt: new Date().toISOString() };
-  localStorage.setItem("dc_user", JSON.stringify(DC.user));
-  closeLogin();
-  showToast(typeof t === "function" ? t("toast.welcome") : "Welcome back");
-  updateAuthUI();
-  setTimeout(() => { window.location.href = "donor/dashboard.html"; }, 600);
+  try {
+    let data;
+    if (window.DCAuth) {
+      data = await DCAuth.verifyOtp(phone, otp, role, name || undefined);
+    } else if (otp === "123456") {
+      data = {
+        user: {
+          phone,
+          name: name || "Donor",
+          role: role === "seeker" ? "seeker" : "donor",
+          loggedInAt: new Date().toISOString(),
+        },
+      };
+      localStorage.setItem("dc_user", JSON.stringify(data.user));
+    } else {
+      showToast(typeof t === "function" ? t("toast.badOtp") : "Invalid OTP");
+      return;
+    }
+    DC.user = data.user || DCAuth.getUser();
+    closeLogin();
+    showToast(typeof t === "function" ? t("toast.welcome") : "Welcome back");
+    updateAuthUI();
+    const r = (DC.user && DC.user.role) || role;
+    const dest = r === "seeker" || r === "needy" ? "apply.html" : "donor/dashboard.html";
+    setTimeout(() => { window.location.href = dest; }, 500);
+  } catch (e) {
+    showToast(e.message || (typeof t === "function" ? t("toast.badOtp") : "Invalid OTP"));
+  }
 }
 
 function updateAuthUI() {
-  const raw = localStorage.getItem("dc_user");
+  const user = (window.DCAuth && DCAuth.getUser()) || (() => {
+    try { return JSON.parse(localStorage.getItem("dc_user") || "null"); } catch { return null; }
+  })();
   const btn = document.getElementById("nav-auth-btn");
+  const logoutBtn = document.getElementById("nav-logout-btn");
   if (!btn) return;
-  if (raw) {
-    try { DC.user = JSON.parse(raw); } catch (_) {}
-    btn.textContent = typeof t === "function" ? t("nav.dashboard") : "Dashboard";
-    btn.onclick = () => { window.location.href = "donor/dashboard.html"; };
+  if (user) {
+    DC.user = user;
+    const isSeeker = user.role === "seeker" || user.role === "needy";
+    btn.textContent = typeof t === "function" ? t("nav.dashboard") : (isSeeker ? "My application" : "Dashboard");
+    btn.onclick = () => {
+      window.location.href = isSeeker ? "apply.html" : "donor/dashboard.html";
+    };
+    if (logoutBtn) logoutBtn.classList.remove("hidden");
+  } else {
+    btn.textContent = typeof t === "function" ? t("nav.login") : "Login";
+    btn.onclick = () => openLogin();
+    if (logoutBtn) logoutBtn.classList.add("hidden");
   }
+}
+
+function logoutUser() {
+  if (window.DCAuth) DCAuth.logout();
+  else {
+    localStorage.removeItem("dc_user");
+    if (window.DCRBAC && DCRBAC.clearSession) DCRBAC.clearSession();
+  }
+  DC.user = null;
+  updateAuthUI();
+  showToast("Logged out");
 }
 
 function setQuickAmount(v) {
@@ -303,7 +374,21 @@ async function processPayment() {
 
     const receiptId = paymentId || "DC-" + Date.now().toString(36).toUpperCase();
     const donations = JSON.parse(localStorage.getItem("dc_donations") || "[]");
-    const record = {
+    let realName = null;
+    let realPhone = null;
+    try {
+      const u = (window.DCAuth && DCAuth.getUser()) || JSON.parse(localStorage.getItem("dc_user") || "null");
+      if (u) {
+        realName = u.name || null;
+        realPhone = u.phone || null;
+      }
+    } catch (_) {}
+    // Persist preference when checkbox used
+    if (window.DCPrivacy && typeof DCPrivacy.setPreferAnonymous === "function") {
+      // only set true when checked this time (don't force off global prefer)
+      if (anon) DCPrivacy.setPreferAnonymous(true);
+    }
+    const rawRecord = {
       id: receiptId,
       amount,
       method,
@@ -312,6 +397,7 @@ async function processPayment() {
       city: DC.selectedCase?.city || "—",
       vendor,
       anonymous: !!anon,
+      privacyMode: anon ? "anonymous" : "named",
       date: new Date().toISOString(),
       status: payStatus === "settled" || payStatus === "completed" ? "completed" : payStatus,
       proof: "Vendor proof within 48 hours",
@@ -319,7 +405,15 @@ async function processPayment() {
       providerRef,
       paymentMode: mode,
       realtime: !!window.DCPayments,
+      donorName: anon ? "Anonymous donor" : (realName || "Donor"),
     };
+    // Public store never keeps real name for khamosh donors
+    const record = window.DCPrivacy && DCPrivacy.toPublicDonation
+      ? DCPrivacy.toPublicDonation(rawRecord, { name: realName })
+      : rawRecord;
+    if (anon && window.DCPrivacy && DCPrivacy.savePrivateDonationMeta) {
+      DCPrivacy.savePrivateDonationMeta(record, realName, realPhone);
+    }
 
     try {
       if (window.Ledger) {
@@ -411,6 +505,18 @@ function showReceipt(r) {
   document.getElementById("receipt-method").textContent = r.method.toUpperCase();
   document.getElementById("receipt-date").textContent = new Date(r.date).toLocaleString();
   document.getElementById("receipt-vendor").textContent = r.vendor;
+  const donorEl = document.getElementById("receipt-donor");
+  if (donorEl) {
+    const label = window.DCPrivacy && DCPrivacy.publicDonorLabel
+      ? DCPrivacy.publicDonorLabel(r)
+      : (r.anonymous ? "Anonymous donor" : (r.donorName || "Donor"));
+    donorEl.textContent = label;
+  }
+  const anonBadge = document.getElementById("receipt-anon-badge");
+  if (anonBadge) {
+    if (r.anonymous) anonBadge.classList.remove("hidden");
+    else anonBadge.classList.add("hidden");
+  }
 
   const hashEl = document.getElementById("receipt-hash");
   const idxEl = document.getElementById("receipt-block");
@@ -487,17 +593,18 @@ function calcZakat() {
   const hawlCheck = document.getElementById("zakat-hawl-declare");
   const forceHawl = hawlCheck ? hawlCheck.checked : false;
 
+  const useTola = window.DCLocales && DCLocales.getCountry && DCLocales.getCountry().goldUnit === "tola";
+  const assets = useTola
+    ? { goldTola: gold, silverTola: silver, cash, business, liabilities: 0 }
+    : { goldGrams: gold, silverGrams: silver, cash, business, liabilities: 0 };
+
   let result;
   if (window.DCZakat) {
-    result = DCZakat.calculate(
-      { goldTola: gold, silverTola: silver, cash, business, liabilities: 0 },
-      { forceHawlComplete: forceHawl }
-    );
+    result = DCZakat.calculate(assets, { forceHawlComplete: forceHawl });
   } else {
-    // Fallback if zakat.js not loaded
-    const zcfg = window.DCConfig ? DCConfig.load().zakat : { goldPricePerTola: 240000, silverPricePerTola: 2800, ratePercent: 2.5, nisabGoldTola: 7.5 };
-    const total = gold * (zcfg.goldPricePerTola || 240000) + silver * (zcfg.silverPricePerTola || 2800) + cash + business;
-    const nisab = (zcfg.nisabGoldTola || 7.5) * (zcfg.goldPricePerTola || 240000);
+    const zcfg = window.DCConfig ? DCConfig.load().zakat : { goldPricePerGram: 75, ratePercent: 2.5, nisabGoldGrams: 85 };
+    const total = gold * (zcfg.goldPricePerGram || 75) + cash + business;
+    const nisab = (zcfg.nisabGoldGrams || 85) * (zcfg.goldPricePerGram || 75);
     const rate = (zcfg.ratePercent || 2.5) / 100;
     const due = total >= nisab ? Math.round(total * rate) : 0;
     result = {
@@ -511,6 +618,11 @@ function calcZakat() {
     };
   }
 
+  const fmt = (n) =>
+    window.DCZakat && DCZakat.formatZakatMoney
+      ? DCZakat.formatZakatMoney(n)
+      : (result.currencySymbol || result.currency || "") + " " + Number(n || 0).toLocaleString();
+
   const el = document.getElementById("zakat-amount");
   const box = document.getElementById("zakat-result");
   const base = document.getElementById("zakat-base");
@@ -519,10 +631,10 @@ function calcZakat() {
   const remainEl = document.getElementById("zakat-remaining");
   const progressEl = document.getElementById("zakat-hawl-progress");
 
-  if (el) el.textContent = (result.zakatDue || 0).toLocaleString("en-PK");
-  if (base) base.textContent = typeof formatPKR === "function" ? formatPKR(result.netWealth) : ("PKR " + result.netWealth.toLocaleString("en-PK"));
-  if (nisabEl) nisabEl.textContent = typeof formatPKR === "function" ? formatPKR(result.nisab) : ("PKR " + result.nisab.toLocaleString("en-PK"));
-  if (remainEl) remainEl.textContent = (result.remaining || 0).toLocaleString("en-PK");
+  if (el) el.textContent = fmt(result.zakatDue || 0);
+  if (base) base.textContent = fmt(result.netWealth);
+  if (nisabEl) nisabEl.textContent = fmt(result.nisab) + (result.nisabGoldGrams ? " · " + result.nisabGoldGrams + "g gold" : "");
+  if (remainEl) remainEl.textContent = fmt(result.remaining || 0);
 
   if (hawlEl) {
     hawlEl.textContent = result.hawl.message || "";
@@ -559,6 +671,7 @@ function setFilter(filter, btn) {
   renderCases();
 }
 
+document.addEventListener("DOMContentLoaded", function _dcLocaleBoot(ev) { try { initGlobalLocaleUI(); } catch (_) {} });
 document.addEventListener("DOMContentLoaded", () => {
   applyAdminConfig();
   updateAuthUI();
@@ -726,6 +839,10 @@ function applyAdminConfig() {
     const wrap = anon.closest("label");
     if (wrap) wrap.style.display = cfg.donations.allowAnonymous ? "" : "none";
     if (!cfg.donations.allowAnonymous) anon.checked = false;
+    else if (window.DCPrivacy && DCPrivacy.getPreferAnonymous && DCPrivacy.getPreferAnonymous()) anon.checked = true;
+    anon.addEventListener("change", () => {
+      if (window.DCPrivacy && DCPrivacy.setPreferAnonymous) DCPrivacy.setPreferAnonymous(!!anon.checked);
+    });
   }
 
   // Category filter buttons
@@ -869,4 +986,36 @@ function renderQuickAmounts() {
   box.innerHTML = amounts.map(a =>
     `<button type="button" onclick="setQuickAmount(${a})" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-medium">${Number(a).toLocaleString()}</button>`
   ).join("");
+}
+
+
+function onZakatCountryChange() {
+  const sel = document.getElementById("zakat-country");
+  if (!sel || !window.DCLocales) return;
+  DCLocales.setCountryCode(sel.value);
+  updateZakatLabels();
+  try { calcZakat(); } catch (_) {}
+}
+
+function updateZakatLabels() {
+  if (!window.DCZakat) return;
+  const cfg = DCZakat.getConfig();
+  const unit = cfg.goldUnit === "tola" ? "tola" : "grams";
+  const gl = document.getElementById("zakat-gold-label");
+  const sl = document.getElementById("zakat-cash-label");
+  const bl = document.getElementById("zakat-business-label");
+  if (gl) gl.textContent = "Gold (" + unit + ")";
+  if (sl) sl.textContent = "Cash / bank (" + cfg.currency + ")";
+  if (bl) bl.textContent = "Business / stocks (" + cfg.currency + ")";
+  const sil = document.querySelector('label[for="zakat-silver"]');
+  if (sil) sil.textContent = "Silver (" + unit + ")";
+}
+
+function initGlobalLocaleUI() {
+  if (window.DCLocales) {
+    DCLocales.fillCountrySelect(document.getElementById("zakat-country"));
+    const langSel = document.getElementById("lang-select");
+    if (langSel && langSel.options.length < 5) DCLocales.fillLangSelect(langSel, (window.I18n && I18n.getLang && I18n.getLang()) || "en");
+  }
+  updateZakatLabels();
 }

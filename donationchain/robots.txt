@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin/
 Disallow: /donor/dashboard.html
 
-Sitemap: https://donationchain.pk/sitemap.xml
+Sitemap: https://mrbahramkhan.github.io/donationchain/sitemap.xml

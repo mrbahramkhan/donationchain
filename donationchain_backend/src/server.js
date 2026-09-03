@@ -16,6 +16,9 @@ app.listen(PORT, () => {
   console.log(`  Topic:         POST /api/notifications/topic`);
   console.log(`  Events:        POST /api/notifications/events/*`);
   console.log(`  Auth login:    POST /api/auth/login`);
+  console.log(`  OTP request:   POST /api/auth/otp/request`);
+  console.log(`  OTP verify:    POST /api/auth/otp/verify`);
+  console.log(`  User register: POST /api/auth/register`);
   console.log(`  SMS send:      POST /api/sms/send`);
   console.log(`  Auth me:       GET  /api/auth/me`);
   console.log(`  Register device: POST /api/devices/register`);

@@ -127,9 +127,17 @@
           <input type="checkbox" name="newsletter" class="mt-1 rounded text-primary" checked />
           <span>Send me impact updates (email / WhatsApp)</span>
         </label>
-        <label class="flex items-start gap-3 text-sm cursor-pointer">
+        
+      <label class="flex items-start gap-3 text-sm text-slate-700 cursor-pointer mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <input type="checkbox" id="preferAnonymous" name="preferAnonymous" class="rounded text-primary mt-1" />
+        <span>
+          <span class="font-semibold">Khamosh donor (default)</span>
+          <span class="block text-xs text-slate-500 mt-0.5">Har donation par mera naam public list mein na dikhe — Anonymous donor ke tor par show ho.</span>
+        </span>
+      </label>
+<label class="flex items-start gap-3 text-sm cursor-pointer">
           <input type="checkbox" name="consent" required class="mt-1 rounded text-primary" />
-          <span>I agree to the privacy policy. My data is used only for donations, receipts, and platform security. <span class="text-red-500">*</span></span>
+          <span>I agree to the <a href="../privacy.html" class="text-primary underline">privacy policy</a>. My data is used only for donations, receipts, and platform security. <span class="text-red-500">*</span></span>
         </label>
       </div>
 
@@ -172,9 +180,13 @@
             name: rec.fullName || "Donor",
             email: rec.email || "",
             role: "donor",
+            preferAnonymous: !!(document.getElementById("preferAnonymous") && document.getElementById("preferAnonymous").checked),
             loggedInAt: new Date().toISOString()
           }));
           if (window.DCRBAC) DCRBAC.setSession({ name: rec.fullName || "Donor", phone: rec.phone || "", role: "donor" });
+          if (window.DCPrivacy && DCPrivacy.setPreferAnonymous) {
+            DCPrivacy.setPreferAnonymous(!!(document.getElementById("preferAnonymous") && document.getElementById("preferAnonymous").checked));
+          }
         } catch (_) {}
         ok.innerHTML = "Profile saved. ID: <strong>" + rec.id + "</strong>. You can donate to verified cases now.";
         ok.classList.remove("hidden");
