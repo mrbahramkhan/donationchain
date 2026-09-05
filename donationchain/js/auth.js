@@ -73,17 +73,17 @@ const DCAuth = (() => {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      // Fallback demo when API offline
-      if (res.status === 404 || res.status === 0 || !res.status) {
+      const prod = !(window.DCConfig && DCConfig.isProduction && DCConfig.isProduction() === false);
+      if (!prod && (res.status === 404 || res.status === 0 || !res.status)) {
         return {
           ok: true,
           mock: true,
           code: "123456",
-          message: "Offline demo OTP",
+          message: "Dev offline OTP (disabled in production)",
           phone,
         };
       }
-      throw new Error(data.error || "Failed to send OTP");
+      throw new Error(data.error || "Failed to send OTP — check API / SMS provider");
     }
     return data;
   }
@@ -99,8 +99,8 @@ const DCAuth = (() => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        // Demo fallback: accept 123456 when API error
-        if (code === "123456" && (res.status >= 500 || res.status === 404)) {
+        const prod = !(window.DCConfig && DCConfig.isProduction && DCConfig.isProduction() === false);
+        if (!prod && code === "123456" && (res.status >= 500 || res.status === 404)) {
           return demoLogin(phone, role, name);
         }
         throw new Error(data.error || "Invalid OTP");
@@ -109,7 +109,8 @@ const DCAuth = (() => {
       if (data.user) setUser(data.user);
       return data;
     } catch (e) {
-      if (code === "123456") {
+      const prod = !(window.DCConfig && DCConfig.isProduction && DCConfig.isProduction() === false);
+      if (!prod && code === "123456") {
         return demoLogin(phone, role, name);
       }
       throw e;

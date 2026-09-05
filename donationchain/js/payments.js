@@ -21,10 +21,10 @@ const DCPayments = (() => {
     return {
       ok: true,
       methods: {
-        raast: { enabled: true, mode: 'sandbox' },
-        jazzcash: { enabled: true, mode: 'sandbox' },
-        easypaisa: { enabled: true, mode: 'sandbox' },
-        card: { enabled: true, mode: 'sandbox' },
+        raast: { enabled: true, mode: 'live' },
+        jazzcash: { enabled: true, mode: 'live' },
+        easypaisa: { enabled: true, mode: 'live' },
+        card: { enabled: true, mode: 'live' },
       },
     };
   }

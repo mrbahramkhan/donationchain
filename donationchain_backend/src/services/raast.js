@@ -14,7 +14,7 @@
  */
 const crypto = require('crypto');
 
-const MODE = (process.env.RAAST_MODE || 'sandbox').toLowerCase();
+const MODE = (process.env.RAAST_MODE || (process.env.NODE_ENV === 'production' ? 'live' : 'sandbox')).toLowerCase();
 const API_BASE = (process.env.RAAST_API_BASE || '').replace(/\/$/, '');
 const API_KEY = process.env.RAAST_API_KEY || '';
 const MERCHANT_IBAN = process.env.RAAST_MERCHANT_IBAN || 'PK00DEMO0000000000000000';

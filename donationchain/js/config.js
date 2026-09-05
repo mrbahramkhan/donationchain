@@ -14,6 +14,9 @@ const DCConfig = (() => {
       defaultCurrency: "USD",
       defaultCountry: "GLOBAL",
       maintenanceMode: false,
+      /** productionMode=true disables demo OTP, sample data, simulated-only UI copy */
+      productionMode: true,
+      apiBase: "",
     },
     donations: {
       minAmount: 100,
@@ -68,7 +71,7 @@ const DCConfig = (() => {
       chainId: 80002,
       chainName: "Polygon Amoy",
       rpcUrl: "https://rpc-amoy.polygon.technology",
-      autoAnchorSimulated: true,
+      autoAnchorSimulated: false,
     },
     features: {
       donorDashboard: true,
@@ -144,7 +147,18 @@ const DCConfig = (() => {
     return save(cfg);
   }
 
-  return { defaults, load, save, reset, get, setSection, KEY };
+  function isProduction() {
+    try {
+      const g = load().general || {};
+      // Explicit false only enables demo/dev fallbacks
+      if (g.productionMode === false) return false;
+      return true;
+    } catch {
+      return true;
+    }
+  }
+
+  return { defaults, load, save, reset, get, setSection, isProduction, KEY };
 })();
 
 if (typeof window !== "undefined") window.DCConfig = DCConfig;

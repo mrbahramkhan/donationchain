@@ -61,7 +61,7 @@ function requestOtp(phone, role) {
     mock,
   };
   // Only expose code in mock/dev — never in production with real SMS
-  if (mock || process.env.OTP_RETURN_CODE === 'true') {
+  if (process.env.NODE_ENV !== 'production' && (mock || process.env.OTP_RETURN_CODE === 'true')) {
     result.code = code;
   }
   return result;

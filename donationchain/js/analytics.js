@@ -638,7 +638,7 @@ const DCAnalytics = (() => {
         </div>
         ${trendChart(stats.trend, { width: 720, height: 240 })}
         <p class="text-[11px] text-slate-400 mt-2">Hover bars for day detail. Data from browser donation ledger.
-          ${stats.count === 0 ? '<button type="button" class="ml-2 text-primary font-semibold" onclick="if(window.DCAnalytics&&DCAnalytics.seedDemoTrend){DCAnalytics.seedDemoTrend(30);DCAnalytics.renderAdmin(\'analytics-root\',{days:30});}">Load sample trend data</button>' : ""}
+          ${stats.count === 0 && window.DCConfig && DCConfig.isProduction && DCConfig.isProduction() === false ? '<button type="button" class="ml-2 text-primary font-semibold" onclick="if(window.DCAnalytics&&DCAnalytics.seedDemoTrend){DCAnalytics.seedDemoTrend(30);DCAnalytics.renderAdmin(\'analytics-root\',{days:30});}">Load sample trend data</button>' : (stats.count === 0 ? " No donations in this browser yet." : "")}
         </p>
       </div>
 
