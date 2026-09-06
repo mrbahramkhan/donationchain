@@ -14,6 +14,7 @@
  */
 const crypto = require('crypto');
 const iso20022 = require('./iso20022');
+const raastErrorCodes = require('./raastErrorCodes');
 
 const MODE = (process.env.RAAST_MODE || (process.env.NODE_ENV === 'production' ? 'live' : 'sandbox')).toLowerCase();
 const API_BASE = (process.env.RAAST_API_BASE || '').replace(/\/$/, '');
@@ -432,6 +433,10 @@ function configPublic() {
       serviceLevel: iso20022.SERVICE_LEVEL,
       identifiers: ['MsgId', 'PmtInfId', 'InstrId', 'EndToEndId', 'UETR'],
     },
+    errorCatalog: {
+      platform: Object.keys(raastErrorCodes.PLATFORM),
+      isoTxStatus: Object.keys(raastErrorCodes.ISO_TX_STATUS),
+    },
     retry: {
       max: RETRY_MAX,
       preserves: ['UETR', 'EndToEndId', 'Idempotency-Key'],
@@ -455,4 +460,5 @@ module.exports = {
   WEBHOOK_SECRET,
   RETRY_MAX,
   iso20022,
+  raastErrorCodes,
 };
