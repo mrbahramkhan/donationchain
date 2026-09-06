@@ -1,18 +1,19 @@
 /**
- * Raast (SBP instant payments) integration layer.
+ * Raast (SBP instant payments) integration layer — ISO 20022 aligned.
  *
  * Modes:
- * - sandbox (default): realistic async settlement simulation
- * - live: calls bank/aggregator HTTP API using env credentials
+ * - sandbox: async settlement simulation + full pain.001 field map
+ * - live: bank/PSP HTTP API with ISO 20022 identifiers (EndToEndId, UETR, …)
  *
- * Production wiring (typical Pakistan path):
+ * Production wiring:
  * 1. Participant bank or licensed PSP issues API key + merchant IBAN
- * 2. Set RAAST_MODE=live + RAAST_API_BASE + RAAST_API_KEY + RAAST_MERCHANT_IBAN
- * 3. Webhook URL: POST /api/payments/webhook/raast
+ * 2. RAAST_MODE=live + RAAST_API_BASE + RAAST_API_KEY + RAAST_MERCHANT_IBAN
+ * 3. Webhook: POST /api/payments/webhook/raast (HMAC on raw body)
  *
- * Docs reference shape aligns with common bank RTP / account-to-account APIs.
+ * Message mapping: see services/iso20022.js (pain.001 initiation → gateway JSON).
  */
 const crypto = require('crypto');
+const iso20022 = require('./iso20022');
 
 const MODE = (process.env.RAAST_MODE || (process.env.NODE_ENV === 'production' ? 'live' : 'sandbox')).toLowerCase();
 const API_BASE = (process.env.RAAST_API_BASE || '').replace(/\/$/, '');
@@ -47,8 +48,8 @@ async function initiateTransfer(opts) {
     err.code = 'INVALID_AMOUNT';
     throw err;
   }
-  const beneficiaryIban = String(opts.beneficiaryIban || '').replace(/\s/g, '').toUpperCase();
-  if (!/^PK\d{2}[A-Z0-9]{11,24}$/i.test(beneficiaryIban) && MODE === 'live') {
+  const beneficiaryIban = iso20022.normalizeIban(opts.beneficiaryIban || MERCHANT_IBAN);
+  if (MODE === 'live' && !iso20022.isValidPkIban(beneficiaryIban)) {
     const err = new Error('Invalid beneficiary IBAN');
     err.code = 'INVALID_IBAN';
     throw err;
@@ -56,21 +57,29 @@ async function initiateTransfer(opts) {
 
   const paymentId = uid('RAAST');
   const idempotencyKey = opts.idempotencyKey || paymentId;
-  const payload = {
-    amount,
-    currency: 'PKR',
-    debtor: {
-      // Payer side — in live mode bank collects from donor app / account linking
-      type: 'CUSTOMER_COLLECTION',
-    },
-    creditor: {
-      iban: beneficiaryIban || MERCHANT_IBAN,
-      name: opts.beneficiaryName || MERCHANT_NAME,
-    },
+
+  // ISO 20022 pain.001 mapping (EndToEndId + UETR stable for the chain)
+  const painBundle = iso20022.buildPain001CreditTransfer({
+    amountPkr: amount,
+    beneficiaryIban,
+    beneficiaryName: opts.beneficiaryName || MERCHANT_NAME,
+    debtorName: opts.debtorName,
+    debtorIban: opts.debtorIban,
+    endToEndId: opts.endToEndId || opts.customerReference || paymentId,
+    uetr: opts.uetr,
     customerReference: opts.customerReference || paymentId,
-    narration: (opts.narration || 'DonationChain disbursement').slice(0, 140),
+    narration: opts.narration || 'DonationChain institutional disbursement',
+    caseId: opts.caseId,
+    purposeCode: opts.purposeCode,
+    initiatingParty: MERCHANT_NAME,
+  });
+
+  const payload = iso20022.toGatewayCreditTransferBody(painBundle, {
     idempotencyKey,
-  };
+    customerReference: painBundle.identifiers.endToEndId,
+    narration: (opts.narration || 'DonationChain disbursement').slice(0, 140),
+    platformPaymentId: paymentId,
+  });
 
   if (isLive()) {
     const res = await fetch(`${API_BASE}/v1/payments/raast/credit-transfer`, {
@@ -80,6 +89,9 @@ async function initiateTransfer(opts) {
         Authorization: `Bearer ${API_KEY}`,
         'Idempotency-Key': idempotencyKey,
         'X-Merchant-Id': process.env.RAAST_MERCHANT_ID || 'donationchain',
+        'X-ISO20022-Message-Type': 'pain.001.001.09',
+        'X-End-To-End-Id': painBundle.identifiers.endToEndId,
+        'X-UETR': painBundle.identifiers.uetr,
       },
       body: JSON.stringify(payload),
     });
@@ -91,45 +103,62 @@ async function initiateTransfer(opts) {
       err.details = body;
       throw err;
     }
+    const extracted = iso20022.extractIdsFromProviderBody(body);
     return {
       provider: 'raast',
       mode: 'live',
-      paymentId: body.paymentId || body.id || paymentId,
-      providerRef: body.transactionId || body.rrn || body.endToEndId || null,
-      status: mapLiveStatus(body.status),
+      paymentId: extracted.paymentId || paymentId,
+      providerRef: extracted.providerRef || painBundle.identifiers.uetr,
+      endToEndId: extracted.endToEndId || painBundle.identifiers.endToEndId,
+      uetr: extracted.uetr || painBundle.identifiers.uetr,
+      instrId: painBundle.identifiers.instrId,
+      status: mapLiveStatus(extracted.isoTxStatus || body.status),
       amount,
       currency: 'PKR',
-      creditorIban: payload.creditor.iban,
-      creditorName: payload.creditor.name,
+      creditorIban: beneficiaryIban,
+      creditorName: opts.beneficiaryName || MERCHANT_NAME,
+      iso20022: {
+        messageType: 'pain.001.001.09',
+        endToEndId: painBundle.identifiers.endToEndId,
+        uetr: painBundle.identifiers.uetr,
+        msgId: painBundle.identifiers.msgId,
+      },
       raw: body,
       createdAt: new Date().toISOString(),
     };
   }
 
-  // Sandbox: pending → processing → settled (async)
+  // Sandbox: pending → processing → settled (async), ISO ids still assigned
   return {
     provider: 'raast',
     mode: 'sandbox',
     paymentId,
     providerRef: 'SBX-' + crypto.randomBytes(4).toString('hex').toUpperCase(),
+    endToEndId: painBundle.identifiers.endToEndId,
+    uetr: painBundle.identifiers.uetr,
+    instrId: painBundle.identifiers.instrId,
     status: 'pending',
     amount,
     currency: 'PKR',
-    creditorIban: payload.creditor.iban,
-    creditorName: payload.creditor.name,
-    customerReference: payload.customerReference,
+    creditorIban: beneficiaryIban,
+    creditorName: opts.beneficiaryName || MERCHANT_NAME,
+    customerReference: painBundle.identifiers.endToEndId,
     narration: payload.narration,
+    iso20022: {
+      messageType: 'pain.001.001.09',
+      endToEndId: painBundle.identifiers.endToEndId,
+      uetr: painBundle.identifiers.uetr,
+      msgId: painBundle.identifiers.msgId,
+      pmtInfId: painBundle.identifiers.pmtInfId,
+    },
     createdAt: new Date().toISOString(),
     settleAfterMs: SETTLE_MS,
   };
 }
 
 function mapLiveStatus(s) {
-  const v = String(s || '').toLowerCase();
-  if (['success', 'completed', 'settled', 'accepted', 'acsc'].includes(v)) return 'settled';
-  if (['failed', 'rejected', 'rjct', 'cancelled'].includes(v)) return 'failed';
-  if (['processing', 'pending', 'pdng', 'actc'].includes(v)) return 'processing';
-  return 'pending';
+  // Prefer ISO pacs.002 TxSts codes, then loose aliases
+  return iso20022.mapIsoTransactionStatus(s);
 }
 
 /**
@@ -251,6 +280,13 @@ function configPublic() {
     settleMsHint: isLive() ? null : SETTLE_MS,
     supportsRealtimeStatus: true,
     supportsWebhook: true,
+    iso20022: {
+      initiationMessage: 'pain.001.001.09',
+      statusCodes: 'pacs.002 TxSts (ACSC/ACCC/RJCT/…)',
+      localInstrument: iso20022.LOCAL_INSTRUMENT,
+      serviceLevel: iso20022.SERVICE_LEVEL,
+      identifiers: ['MsgId', 'PmtInfId', 'InstrId', 'EndToEndId', 'UETR'],
+    },
   };
 }
 
@@ -265,4 +301,5 @@ module.exports = {
   MERCHANT_IBAN,
   SETTLE_MS,
   WEBHOOK_SECRET,
+  iso20022,
 };

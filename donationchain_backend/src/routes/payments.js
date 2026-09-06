@@ -39,6 +39,8 @@ function publicPayment(p) {
     settledAt: p.settledAt || null,
     failureReason: p.failureReason || null,
     realtime: true,
+    endToEndId: p.endToEndId || null,
+    uetr: p.uetr || null,
   };
 }
 
@@ -152,6 +154,10 @@ router.post('/initiate', async (req, res) => {
         customerReference: b.billReference || b.caseId || id,
         narration: `${purpose} ${b.caseTitle || ''}`.trim(),
         idempotencyKey: idempotencyKey || id,
+        caseId: b.caseId || null,
+        purposeCode: purpose === 'bill' ? 'UTLT' : 'CHAR',
+        endToEndId: b.endToEndId || null,
+        uetr: b.uetr || null,
       });
       status = providerResult.status;
       mode = providerResult.mode;
@@ -185,6 +191,9 @@ router.post('/initiate', async (req, res) => {
       currency: 'PKR',
       mode,
       providerRef,
+      endToEndId: providerResult && providerResult.endToEndId,
+      uetr: providerResult && providerResult.uetr,
+      instrId: providerResult && providerResult.instrId,
       purpose,
       caseId: b.caseId || null,
       caseTitle: b.caseTitle || null,
@@ -196,6 +205,7 @@ router.post('/initiate', async (req, res) => {
       updatedAt: new Date().toISOString(),
       settledAt: status === 'settled' ? new Date().toISOString() : null,
       providerResult,
+      iso20022: providerResult && providerResult.iso20022,
     });
 
     if (mode === 'sandbox' && status !== 'settled' && status !== 'failed') {
@@ -324,25 +334,51 @@ router.post('/webhook/raast', (req, res) => {
     });
   }
   const body = req.body || {};
-  const providerRef = body.transactionId || body.rrn || body.endToEndId || body.providerRef;
-  const paymentId = body.paymentId || body.merchantReference || body.customerReference;
+  const extracted = raast.iso20022
+    ? raast.iso20022.extractIdsFromProviderBody(body)
+    : {};
+  const providerRef =
+    extracted.providerRef ||
+    body.transactionId ||
+    body.rrn ||
+    body.endToEndId ||
+    body.UETR ||
+    body.providerRef;
+  const paymentId = body.paymentId || body.merchantReference || body.customerReference || body.platformPaymentId;
+  const endToEndId = extracted.endToEndId || body.endToEndId || body.EndToEndId;
+  const uetr = extracted.uetr || body.uetr || body.UETR;
   let p = paymentId ? store.get(String(paymentId)) : null;
   if (!p && providerRef) {
     p = store.list(200).find((x) => x.providerRef === providerRef) || null;
   }
+  if (!p && endToEndId) {
+    p = store.list(200).find((x) => x.endToEndId === endToEndId) || null;
+  }
+  if (!p && uetr) {
+    p = store.list(200).find((x) => x.uetr === uetr) || null;
+  }
   if (!p) {
     return res.status(404).json({ ok: false, error: 'payment not found' });
   }
-  const status = raast.mapLiveStatus(body.status);
+  const status = raast.mapLiveStatus(extracted.isoTxStatus || body.status || body.txSts || body.TxSts);
   store.update(p.id, {
     status,
     providerRef: providerRef || p.providerRef,
+    endToEndId: endToEndId || p.endToEndId,
+    uetr: uetr || p.uetr,
     settledAt: status === 'settled' ? new Date().toISOString() : p.settledAt,
     failureReason: status === 'failed' ? body.reason || body.message || 'Declined' : null,
     webhookAt: new Date().toISOString(),
     webhookVerified: true,
   });
-  res.json({ ok: true, id: p.id, status, signature: verified.reason });
+  res.json({
+    ok: true,
+    id: p.id,
+    status,
+    endToEndId: endToEndId || p.endToEndId,
+    uetr: uetr || p.uetr,
+    signature: verified.reason,
+  });
 });
 
 /** Sandbox helper: sign a sample payload (dev only) */
