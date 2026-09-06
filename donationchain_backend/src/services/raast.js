@@ -22,6 +22,10 @@ const MERCHANT_IBAN = process.env.RAAST_MERCHANT_IBAN || 'PK00DEMO00000000000000
 const MERCHANT_NAME = process.env.RAAST_MERCHANT_NAME || 'DonationChain';
 const WEBHOOK_SECRET = process.env.RAAST_WEBHOOK_SECRET || 'dc-raast-webhook-dev';
 const SETTLE_MS = Number(process.env.RAAST_SANDBOX_SETTLE_MS) || 2500;
+/** Live API retries — same UETR + EndToEndId + Idempotency-Key on every attempt */
+const RETRY_MAX = Math.max(1, Number(process.env.RAAST_RETRY_MAX) || 3);
+const RETRY_BASE_MS = Number(process.env.RAAST_RETRY_BASE_MS) || 400;
+const RETRY_MAX_MS = Number(process.env.RAAST_RETRY_MAX_MS) || 4000;
 
 function uid(prefix) {
   return `${prefix}_${crypto.randomBytes(6).toString('hex')}`;
@@ -41,6 +45,87 @@ function isLive() {
  * @param {string} [opts.narration]
  * @param {string} [opts.idempotencyKey]
  */
+
+const NON_RETRYABLE = new Set([
+  'INVALID_AMOUNT',
+  'INVALID_IBAN',
+  'INVALID_UETR',
+  'INVALID_REQUEST',
+  'UNAUTHORIZED',
+  'FORBIDDEN',
+  'DUPLICATE_REJECTED',
+]);
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableError(err) {
+  if (!err) return false;
+  if (err.code && NON_RETRYABLE.has(String(err.code))) return false;
+  const status = Number(err.status) || 0;
+  if (status === 400 || status === 401 || status === 403 || status === 404 || status === 422) {
+    return false;
+  }
+  // 408, 429, 5xx, network
+  if (status === 408 || status === 429 || status >= 500) return true;
+  if (err.code === 'RAAST_NETWORK' || err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
+    return true;
+  }
+  if (status === 0 || !status) return true;
+  return status >= 500;
+}
+
+function backoffMs(attempt) {
+  // attempt 0-based: 400, 800, 1600… + jitter, capped
+  const exp = RETRY_BASE_MS * Math.pow(2, attempt);
+  const jitter = Math.floor(Math.random() * Math.min(200, RETRY_BASE_MS));
+  return Math.min(RETRY_MAX_MS, exp + jitter);
+}
+
+/**
+ * Retry live gateway call while keeping UETR + EndToEndId + Idempotency-Key fixed.
+ * MsgId / InstrId are regenerated per attempt (new ISO message, same payment identity).
+ */
+async function withUetrRetry(runAttempt, meta) {
+  const attempts = [];
+  let lastErr = null;
+  for (let i = 0; i < RETRY_MAX; i++) {
+    try {
+      const result = await runAttempt(i);
+      if (i > 0) {
+        result.retry = {
+          attempts: i + 1,
+          uetr: meta.uetr,
+          endToEndId: meta.endToEndId,
+          recovered: true,
+        };
+      }
+      return result;
+    } catch (err) {
+      lastErr = err;
+      attempts.push({
+        attempt: i + 1,
+        code: err.code || null,
+        status: err.status || null,
+        message: err.message,
+      });
+      if (i >= RETRY_MAX - 1 || !isRetryableError(err)) {
+        err.retries = attempts;
+        err.uetr = meta.uetr;
+        err.endToEndId = meta.endToEndId;
+        throw err;
+      }
+      const wait = backoffMs(i);
+      console.warn(
+        `[Raast] retry ${i + 1}/${RETRY_MAX} after ${wait}ms — UETR=${meta.uetr} code=${err.code || err.status}`
+      );
+      await sleep(wait);
+    }
+  }
+  throw lastErr;
+}
+
 async function initiateTransfer(opts) {
   const amount = Math.round(Number(opts.amountPkr) || 0);
   if (amount < 1) {
@@ -81,51 +166,111 @@ async function initiateTransfer(opts) {
     platformPaymentId: paymentId,
   });
 
+  // Freeze payment identity for all retries (ISO 20022 rule)
+  const stableUetr = painBundle.identifiers.uetr;
+  const stableE2E = painBundle.identifiers.endToEndId;
+
   if (isLive()) {
-    const res = await fetch(`${API_BASE}/v1/payments/raast/credit-transfer`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${API_KEY}`,
-        'Idempotency-Key': idempotencyKey,
-        'X-Merchant-Id': process.env.RAAST_MERCHANT_ID || 'donationchain',
-        'X-ISO20022-Message-Type': 'pain.001.001.09',
-        'X-End-To-End-Id': painBundle.identifiers.endToEndId,
-        'X-UETR': painBundle.identifiers.uetr,
-      },
-      body: JSON.stringify(payload),
-    });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const err = new Error(body.message || body.error || `Raast API ${res.status}`);
-      err.code = body.code || 'RAAST_API_ERROR';
-      err.status = res.status;
-      err.details = body;
-      throw err;
-    }
-    const extracted = iso20022.extractIdsFromProviderBody(body);
-    return {
-      provider: 'raast',
-      mode: 'live',
-      paymentId: extracted.paymentId || paymentId,
-      providerRef: extracted.providerRef || painBundle.identifiers.uetr,
-      endToEndId: extracted.endToEndId || painBundle.identifiers.endToEndId,
-      uetr: extracted.uetr || painBundle.identifiers.uetr,
-      instrId: painBundle.identifiers.instrId,
-      status: mapLiveStatus(extracted.isoTxStatus || body.status),
-      amount,
-      currency: 'PKR',
-      creditorIban: beneficiaryIban,
-      creditorName: opts.beneficiaryName || MERCHANT_NAME,
-      iso20022: {
-        messageType: 'pain.001.001.09',
-        endToEndId: painBundle.identifiers.endToEndId,
-        uetr: painBundle.identifiers.uetr,
-        msgId: painBundle.identifiers.msgId,
-      },
-      raw: body,
-      createdAt: new Date().toISOString(),
-    };
+    return withUetrRetry(async (attemptIndex) => {
+      // New MsgId/InstrId per attempt; same UETR + EndToEndId + Idempotency-Key
+      const attemptBundle =
+        attemptIndex === 0
+          ? painBundle
+          : iso20022.buildPain001CreditTransfer({
+              amountPkr: amount,
+              beneficiaryIban,
+              beneficiaryName: opts.beneficiaryName || MERCHANT_NAME,
+              debtorName: opts.debtorName,
+              debtorIban: opts.debtorIban,
+              endToEndId: stableE2E,
+              uetr: stableUetr,
+              customerReference: opts.customerReference || paymentId,
+              narration: opts.narration || 'DonationChain institutional disbursement',
+              caseId: opts.caseId,
+              purposeCode: opts.purposeCode,
+              initiatingParty: MERCHANT_NAME,
+            });
+      const attemptPayload = iso20022.toGatewayCreditTransferBody(attemptBundle, {
+        idempotencyKey,
+        customerReference: stableE2E,
+        narration: (opts.narration || 'DonationChain disbursement').slice(0, 140),
+        platformPaymentId: paymentId,
+        retryAttempt: attemptIndex + 1,
+      });
+
+      let res;
+      try {
+        res = await fetch(`${API_BASE}/v1/payments/raast/credit-transfer`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${API_KEY}`,
+            'Idempotency-Key': idempotencyKey,
+            'X-Merchant-Id': process.env.RAAST_MERCHANT_ID || 'donationchain',
+            'X-ISO20022-Message-Type': 'pain.001.001.09',
+            'X-End-To-End-Id': stableE2E,
+            'X-UETR': stableUetr,
+            'X-Retry-Attempt': String(attemptIndex + 1),
+          },
+          body: JSON.stringify(attemptPayload),
+        });
+      } catch (netErr) {
+        const err = new Error(netErr.message || 'Raast network error');
+        err.code = 'RAAST_NETWORK';
+        err.status = 0;
+        err.cause = netErr;
+        throw err;
+      }
+
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err = new Error(body.message || body.error || `Raast API ${res.status}`);
+        err.code = body.code || 'RAAST_API_ERROR';
+        err.status = res.status;
+        err.details = body;
+        throw err;
+      }
+      // Provider returned invalid UETR — do not retry with a different one; surface error
+      const extracted = iso20022.extractIdsFromProviderBody(body);
+      if (extracted.uetrInvalid) {
+        const err = new Error('Provider returned invalid UETR');
+        err.code = 'INVALID_UETR';
+        err.status = 502;
+        err.field = 'uetr';
+        err.provided = extracted.uetrRaw;
+        throw err;
+      }
+      // Prefer our stable ids if provider omits them
+      const outUetr = extracted.uetr || stableUetr;
+      if (extracted.uetr && extracted.uetr !== stableUetr) {
+        console.warn(
+          `[Raast] provider UETR differs from request (keeping request UETR for chain): req=${stableUetr} res=${extracted.uetr}`
+        );
+      }
+      return {
+        provider: 'raast',
+        mode: 'live',
+        paymentId: extracted.paymentId || paymentId,
+        providerRef: extracted.providerRef || outUetr,
+        endToEndId: extracted.endToEndId || stableE2E,
+        uetr: stableUetr,
+        instrId: attemptBundle.identifiers.instrId,
+        status: mapLiveStatus(extracted.isoTxStatus || body.status),
+        amount,
+        currency: 'PKR',
+        creditorIban: beneficiaryIban,
+        creditorName: opts.beneficiaryName || MERCHANT_NAME,
+        iso20022: {
+          messageType: 'pain.001.001.09',
+          endToEndId: stableE2E,
+          uetr: stableUetr,
+          msgId: attemptBundle.identifiers.msgId,
+        },
+        raw: body,
+        createdAt: new Date().toISOString(),
+        attempts: attemptIndex + 1,
+      };
+    }, { uetr: stableUetr, endToEndId: stableE2E });
   }
 
   // Sandbox: pending → processing → settled (async), ISO ids still assigned
@@ -287,6 +432,11 @@ function configPublic() {
       serviceLevel: iso20022.SERVICE_LEVEL,
       identifiers: ['MsgId', 'PmtInfId', 'InstrId', 'EndToEndId', 'UETR'],
     },
+    retry: {
+      max: RETRY_MAX,
+      preserves: ['UETR', 'EndToEndId', 'Idempotency-Key'],
+      regenerates: ['MsgId', 'InstrId'],
+    },
   };
 }
 
@@ -298,8 +448,11 @@ module.exports = {
   configPublic,
   isLive,
   mapLiveStatus,
+  isRetryableError,
+  withUetrRetry,
   MERCHANT_IBAN,
   SETTLE_MS,
   WEBHOOK_SECRET,
+  RETRY_MAX,
   iso20022,
 };
