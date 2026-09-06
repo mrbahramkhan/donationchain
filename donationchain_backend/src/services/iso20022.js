@@ -30,6 +30,56 @@ function uuidV4() {
   return crypto.randomUUID();
 }
 
+/**
+ * UETR must be a UUID (ISO 20022 / SWIFT gpi style).
+ * Accepts UUID v1–v5 hex form; prefers v4 for newly generated values.
+ * RFC 4122: 8-4-4-4-12 hex with optional braces/urn prefix.
+ */
+const UETR_RE =
+  /^(?:urn:uuid:)?\{?([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\}?$/i;
+
+function normalizeUetr(value) {
+  if (value == null || value === '') return null;
+  const s = String(value).trim();
+  const m = s.match(UETR_RE);
+  if (!m) return null;
+  return m[1].toLowerCase();
+}
+
+function isValidUetr(value) {
+  return normalizeUetr(value) != null;
+}
+
+/**
+ * @param {string} [value] - if missing, generates UUID v4
+ * @param {{ required?: boolean }} [opts]
+ * @returns {string} normalized UETR
+ * @throws {{ code: 'INVALID_UETR' }}
+ */
+function resolveUetr(value, opts) {
+  const o = opts || {};
+  if (value == null || value === '') {
+    if (o.required) {
+      const err = new Error('UETR is required');
+      err.code = 'INVALID_UETR';
+      err.field = 'uetr';
+      throw err;
+    }
+    return uuidV4();
+  }
+  const n = normalizeUetr(value);
+  if (!n) {
+    const err = new Error(
+      'Invalid UETR: must be a UUID (8-4-4-4-12 hex), e.g. 550e8400-e29b-41d4-a716-446655440000'
+    );
+    err.code = 'INVALID_UETR';
+    err.field = 'uetr';
+    err.provided = String(value).slice(0, 80);
+    throw err;
+  }
+  return n;
+}
+
 function compactId(prefix, maxLen) {
   const raw = `${prefix}${Date.now().toString(36)}${crypto.randomBytes(3).toString('hex')}`.toUpperCase();
   return raw.slice(0, maxLen || 35);
@@ -70,7 +120,7 @@ function buildPain001CreditTransfer(opts) {
   const instrId = compactId('INSTR', 35);
   const pmtInfId = compactId('PMTINF', 35);
   const msgId = compactId('MSG', 35);
-  const uetr = opts.uetr || uuidV4();
+  const uetr = resolveUetr(opts.uetr); // validates if provided; else generates v4
   const creDtTm = new Date().toISOString();
   const reqdExctnDt = creDtTm.slice(0, 10); // ISO date
   const purpose = opts.purposeCode || CATEGORY_PURPOSE;
@@ -251,13 +301,22 @@ function mapLooseStatus(s) {
  */
 function extractIdsFromProviderBody(body) {
   const b = body || {};
+  const rawUetr = b.uetr || b.UETR || b.uetrId || null;
+  let uetr = null;
+  let uetrInvalid = false;
+  if (rawUetr != null && String(rawUetr).trim() !== '') {
+    uetr = normalizeUetr(rawUetr);
+    if (!uetr) uetrInvalid = true;
+  }
   return {
     paymentId: b.paymentId || b.id || b.merchantReference || null,
     endToEndId: b.endToEndId || b.EndToEndId || b.customerReference || null,
-    uetr: b.uetr || b.UETR || b.uetrId || null,
+    uetr,
+    uetrInvalid,
+    uetrRaw: rawUetr,
     instrId: b.instrId || b.InstrId || null,
     txId: b.txId || b.TxId || b.transactionId || null,
-    providerRef: b.transactionId || b.rrn || b.TxId || b.endToEndId || b.UETR || null,
+    providerRef: b.transactionId || b.rrn || b.TxId || b.endToEndId || (uetr || null),
     isoTxStatus: b.txSts || b.TxSts || b.status || null,
   };
 }
@@ -271,7 +330,11 @@ module.exports = {
   normalizeIban,
   isValidPkIban,
   uuidV4,
+  isValidUetr,
+  normalizeUetr,
+  resolveUetr,
   compactId,
+  UETR_RE,
   CURRENCY,
   SERVICE_LEVEL,
   LOCAL_INSTRUMENT,

@@ -219,10 +219,16 @@ router.post('/initiate', async (req, res) => {
       streamUrl: `/api/payments/stream/${id}`,
     });
   } catch (e) {
-    res.status(e.status && e.status < 500 ? e.status : 502).json({
+    const code = e.code || 'INIT_FAILED';
+    let status = e.status && e.status < 500 ? e.status : 502;
+    if (code === 'INVALID_UETR' || code === 'INVALID_IBAN' || code === 'INVALID_AMOUNT') {
+      status = 400;
+    }
+    res.status(status).json({
       ok: false,
       error: e.message || 'Payment initiation failed',
-      code: e.code || 'INIT_FAILED',
+      code,
+      field: e.field || undefined,
     });
   }
 });
@@ -337,16 +343,26 @@ router.post('/webhook/raast', (req, res) => {
   const extracted = raast.iso20022
     ? raast.iso20022.extractIdsFromProviderBody(body)
     : {};
+  // Reject malformed UETR on webhook when the field is present
+  if (extracted.uetrInvalid) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Invalid UETR format',
+      code: 'INVALID_UETR',
+      field: 'uetr',
+      provided: extracted.uetrRaw,
+      expected: 'UUID 8-4-4-4-12 hex (RFC 4122)',
+    });
+  }
   const providerRef =
     extracted.providerRef ||
     body.transactionId ||
     body.rrn ||
     body.endToEndId ||
-    body.UETR ||
     body.providerRef;
   const paymentId = body.paymentId || body.merchantReference || body.customerReference || body.platformPaymentId;
   const endToEndId = extracted.endToEndId || body.endToEndId || body.EndToEndId;
-  const uetr = extracted.uetr || body.uetr || body.UETR;
+  const uetr = extracted.uetr || null;
   let p = paymentId ? store.get(String(paymentId)) : null;
   if (!p && providerRef) {
     p = store.list(200).find((x) => x.providerRef === providerRef) || null;
