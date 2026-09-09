@@ -1,7 +1,7 @@
 /**
  * DonationChain — Zakat Nisab + Hawl tracking
  * Hawl = one complete lunar year (~354.367 days) of wealth above Nisab.
- * Storage: localStorage (demo). Backend can replace later.
+ * Storage: localStorage for Hawl progress; optional backend sync.
  */
 const DCZakat = (() => {
   const STORAGE_KEY = "dc_zakat_hawl_v1";

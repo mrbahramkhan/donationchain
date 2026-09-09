@@ -203,7 +203,7 @@ async function sendOTP() {
       const data = await DCAuth.requestOtp(phone, role);
       document.getElementById("otp-section")?.classList.remove("hidden");
       const hint = data.code
-        ? ("OTP sent · Demo code: " + data.code)
+        ? ("OTP sent")
         : (typeof t === "function" ? t("toast.otp") : "OTP sent to your phone");
       showToast(hint);
       if (data.code) {
@@ -212,11 +212,11 @@ async function sendOTP() {
       }
     } else {
       document.getElementById("otp-section")?.classList.remove("hidden");
-      showToast(typeof t === "function" ? t("toast.otp") : "OTP sent (Demo: 123456)");
+      showToast(typeof t === "function" ? t("toast.otp") : "OTP sent");
     }
   } catch (e) {
     document.getElementById("otp-section")?.classList.remove("hidden");
-    showToast(e.message || "Could not send OTP — try demo 123456");
+    showToast(e.message || "Could not send OTP");
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = typeof t === "function" ? t("login.send") : "Send OTP"; }
   }

@@ -421,4 +421,19 @@ router.get('/', (_req, res) => {
   res.json({ ok: true, payments: store.list(30).map(publicPayment) });
 });
 
+
+router.get('/errors', (_req, res) => {
+  try {
+    const catalog = require('../services/raastErrorCodes');
+    res.json({
+      ok: true,
+      platform: catalog.PLATFORM,
+      isoTxStatus: catalog.ISO_TX_STATUS,
+      isoStatusReason: catalog.ISO_STATUS_REASON,
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 module.exports = router;
