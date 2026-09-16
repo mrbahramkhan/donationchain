@@ -273,7 +273,7 @@
           <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-3">Pay bills for verified households</h2>
           <p class="text-slate-500 text-sm leading-relaxed mb-4">
             Electricity, gas, water, and landline — payment goes <strong>direct to the utility company</strong>, never as cash to a personal account.
-            Look up a consumer reference, confirm the amount, and pay via JazzCash, EasyPaisa, Raast, or card.
+            Look up a utility reference, confirm the amount, and pay via card, bank transfer, or local payment rails.
           </p>
           <ul class="space-y-2 text-sm text-slate-600 mb-6">
             <li class="flex gap-2"><i class="fas fa-check text-success mt-0.5"></i> WAPDA / LESCO / MEPCO, SNGPL, SSGC, PTCL, water boards</li>
@@ -490,7 +490,7 @@
       </div>
       <div class="border-t border-slate-800 pt-6 text-xs flex flex-col sm:flex-row justify-between gap-2">
         <span>© 2026 DonationChain. <a href="privacy.html" class="hover:text-white">Privacy</a> · <a href="terms.html" class="hover:text-white">Terms</a> · <a href="contact.html" class="hover:text-white">Contact</a></span>
-        <span>JazzCash · EasyPaisa · Raast · Cards</span>
+        <span>Card · Bank · Local rails (where available)</span>
       </div>
     </div>
   </footer>
@@ -516,13 +516,13 @@
         <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Payment method</label>
         <div class="grid grid-cols-2 gap-2">
           <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm">
-            <input type="radio" name="paymethod" value="jazzcash" checked class="text-primary" /> JazzCash
+            <input type="radio" name="paymethod" value="card" checked class="text-primary" /> Card
           </label>
           <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm">
-            <input type="radio" name="paymethod" value="easypaisa" class="text-primary" /> EasyPaisa
+            <input type="radio" name="paymethod" value="bank" class="text-primary" /> Bank transfer
           </label>
           <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm">
-            <input type="radio" name="paymethod" value="raast" class="text-primary" /> Raast
+            <input type="radio" name="paymethod" value="raast" class="text-primary" /> Instant rail (Raast / local)
           </label>
           <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm">
             <input type="radio" name="paymethod" value="stripe" class="text-primary" /> Card
@@ -660,8 +660,8 @@
         <p class="text-xs text-slate-500">Payment method (same as donations)</p>
         <div class="flex flex-wrap gap-2 text-xs" id="bill-methods">
           <label class="px-3 py-2 rounded-lg border border-slate-200 cursor-pointer"><input type="radio" name="billmethod" value="raast" class="mr-1" checked /> Raast</label>
-          <label class="px-3 py-2 rounded-lg border border-slate-200 cursor-pointer"><input type="radio" name="billmethod" value="jazzcash" class="mr-1" /> JazzCash</label>
-          <label class="px-3 py-2 rounded-lg border border-slate-200 cursor-pointer"><input type="radio" name="billmethod" value="easypaisa" class="mr-1" /> EasyPaisa</label>
+          <label class="px-3 py-2 rounded-lg border border-slate-200 cursor-pointer"><input type="radio" name="billmethod" value="card" class="mr-1" checked /> Card</label>
+          <label class="px-3 py-2 rounded-lg border border-slate-200 cursor-pointer"><input type="radio" name="billmethod" value="bank" class="mr-1" /> Bank</label>
           <label class="px-3 py-2 rounded-lg border border-slate-200 cursor-pointer"><input type="radio" name="billmethod" value="card" class="mr-1" /> Card</label>
         </div>
         <button type="button" onclick="confirmBillPay()" class="w-full bg-primary text-white py-3 rounded-xl font-semibold text-sm hover:bg-blue-700">

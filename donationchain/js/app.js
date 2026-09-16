@@ -19,7 +19,18 @@ const DC = {
 };
 
 function formatPKR(n) {
-  return "PKR " + Number(n).toLocaleString("en-PK");
+  // Global: uses selected country currency (not PKR-only)
+  if (window.DCLocales && DCLocales.formatMoney) {
+    return DCLocales.formatMoney(n);
+  }
+  if (window.DCZakat && DCZakat.formatZakatMoney) {
+    return DCZakat.formatZakatMoney(n);
+  }
+  const cur = (window.DCConfig && DCConfig.load().general.defaultCurrency) || "USD";
+  return cur + " " + Number(n || 0).toLocaleString();
+}
+function formatMoney(n) {
+  return formatPKR(n);
 }
 
 function urgencyMeta(u) {
@@ -304,7 +315,7 @@ async function processPayment() {
   const amountEl = document.getElementById("donate-amount");
   const err = document.getElementById("donate-error");
   const amount = Number(amountEl?.value || 0);
-  let method = document.querySelector('input[name="paymethod"]:checked')?.value || "jazzcash";
+  let method = document.querySelector('input[name="paymethod"]:checked')?.value || "card";
   if (method === "stripe") method = "card";
   const anon = document.getElementById("anonymous")?.checked;
 
@@ -816,6 +827,8 @@ function applyAdminConfig() {
   const map = {
     jazzcash: "jazzcash",
     easypaisa: "easypaisa",
+    bank: "bankTransfer",
+    stripe: "card",
     raast: "raast",
     stripe: "card",
     card: "card",
@@ -982,7 +995,7 @@ function copyText(text) {
 function renderQuickAmounts() {
   const box = document.getElementById("quick-amounts");
   if (!box) return;
-  const amounts = (window.DCConfig ? DCConfig.load().donations.quickAmounts : null) || [1000, 2500, 5000, 10000];
+  const amounts = (window.DCConfig ? DCConfig.load().donations.quickAmounts : null) || [10, 25, 50, 100, 250];
   box.innerHTML = amounts.map(a =>
     `<button type="button" onclick="setQuickAmount(${a})" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 font-medium">${Number(a).toLocaleString()}</button>`
   ).join("");

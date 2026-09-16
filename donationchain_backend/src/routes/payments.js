@@ -119,10 +119,12 @@ router.post('/initiate', async (req, res) => {
   try {
     const b = req.body || {};
     const amount = Math.round(Number(b.amount) || 0);
-    let method = String(b.method || 'raast').toLowerCase();
+    let method = String(b.method || 'card').toLowerCase();
     if (method === 'stripe') method = 'card';
-    if (amount < 100) {
-      return res.status(400).json({ ok: false, error: 'Minimum amount PKR 100' });
+    if (method === 'bank') method = 'bank';
+    const minAmt = Number(process.env.PAYMENT_MIN_AMOUNT) || 1;
+    if (amount < minAmt) {
+      return res.status(400).json({ ok: false, error: 'Amount below minimum (' + minAmt + ')' });
     }
     if (amount > 2000000) {
       return res.status(400).json({ ok: false, error: 'Amount exceeds limit' });

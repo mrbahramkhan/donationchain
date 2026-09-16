@@ -19,19 +19,26 @@ const DCConfig = (() => {
       apiBase: "",
     },
     donations: {
-      minAmount: 100,
-      maxAmount: 500000,
-      quickAmounts: [1000, 2500, 5000, 10000],
+      minAmount: 5,
+      maxAmount: 1000000,
+      quickAmounts: [10, 25, 50, 100, 250],
       allowAnonymous: true,
       platformFeePercent: 0,
       autoMatchEnabled: true,
     },
     payments: {
+      /** Global defaults — regional rails optional by market */
+      card: true,
+      bankTransfer: true,
+      stripe: true,
+      /** Pakistan / South Asia regional (optional) */
       jazzcash: true,
       easypaisa: true,
       raast: true,
-      card: true,
-      bankTransfer: false,
+      /** Other regions can enable via admin later */
+      paypal: false,
+      upi: false,
+      mpesa: false,
     },
     categories: {
       medical: true,

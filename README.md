@@ -2,7 +2,7 @@
 
 End-to-end transparent donation platform — **Web + Flutter mobile + Node backend**.
 
-International-ready donation platform. Separate donor & seeker paths. Multi-currency Zakat (Nisab + Hawl). Multi-language UI. Ledger + Merkle. Shariah board. Raast ISO 20022 payments. RBAC. Production mode by default. Accessibility CI.
+World-level donation platform — designed to run in any country. Separate donor & seeker paths. Multi-currency Zakat (Nisab + Hawl). Multi-language UI. Ledger + Merkle. Shariah board. Raast ISO 20022 payments. RBAC. Production mode by default. Accessibility CI.
 
 **Live:** https://mrbahramkhan.github.io/donationchain/  
 **Repo:** https://github.com/mrbahramkhan/donationchain
@@ -21,6 +21,16 @@ International-ready donation platform. Separate donor & seeker paths. Multi-curr
 | `DonationChain_SRS_v1.1.docx` | Earlier SRS |
 
 ---
+
+## Global by design
+
+- Default currency **USD**; country selector sets local currency + Nisab
+- Payment rails: **Card / Bank / local instant** first; regional wallets (JazzCash, EasyPaisa, Raast, UPI, M-Pesa…) optional per market
+- Forms: national ID / passport, international phone — not CNIC-only
+- Utility bills: generic electricity / gas / water / telecom — not WAPDA-only
+- Languages: en, ur, ar, fr, id, ms, tr, bn, hi, sw
+
+**Not Pakistan-only.** Pakistan rails remain available as a regional option.
 
 ## Dual registration (product rule)
 
