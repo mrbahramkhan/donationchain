@@ -1119,7 +1119,7 @@
     }
 
     function resetAdminPassword() {
-      if (!confirm("Reset admin password to default (Admin@DC2026)?")) return;
+      if (!confirm("Reset admin password to the platform default? Change it immediately after.")) return;
       AdminAuth.resetPasswordToDefault();
       showToast("Password reset to default");
     }
@@ -1290,7 +1290,7 @@
           return;
         }
       } catch (_) {}
-      const code = "SC-DEMO" + Math.random().toString(36).slice(2, 6).toUpperCase();
+      const code = "SC-" + Math.random().toString(36).slice(2, 8).toUpperCase();
       const cert = {
         code,
         amount,
@@ -1298,7 +1298,7 @@
         donorId,
         notes,
         issuedAt: new Date().toISOString(),
-        statement: "Demo certificate — institutional disbursement under Board rules.",
+        statement: "Certificate — institutional disbursement under Board rules.",
       };
       try {
         const key = "dc_shariah_certs";
@@ -1308,7 +1308,7 @@
       } catch (_) {}
       out.classList.remove("hidden");
       out.textContent = JSON.stringify(cert, null, 2);
-      showToast("Demo certificate " + code);
+      showToast("Certificate " + code);
     }
 
     document.addEventListener("DOMContentLoaded", () => {

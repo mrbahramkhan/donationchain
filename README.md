@@ -2,7 +2,7 @@
 
 End-to-end transparent donation platform — **Web + Flutter mobile + Node backend**.
 
-Pakistan-focused, international-ready. Separate donor & seeker paths. Zakat (Nisab + Hawl). Ledger + Merkle proofs. Shariah board. RBAC. Accessibility CI.
+International-ready donation platform. Separate donor & seeker paths. Multi-currency Zakat (Nisab + Hawl). Multi-language UI. Ledger + Merkle. Shariah board. Raast ISO 20022 payments. RBAC. Production mode by default. Accessibility CI.
 
 **Live:** https://mrbahramkhan.github.io/donationchain/  
 **Repo:** https://github.com/mrbahramkhan/donationchain
@@ -13,7 +13,7 @@ Pakistan-focused, international-ready. Separate donor & seeker paths. Zakat (Nis
 
 | Path | Description |
 |------|-------------|
-| `donationchain/` | Static web app (PWA, admin, donor dashboard, seeker apply, Zakat+Hawl, ledger, Merkle, explorer, i18n EN/UR, Shariah) |
+| `donationchain/` | Static web app (PWA, admin, donor/seeker, Zakat+Hawl, analytics, ledger, Merkle, explorer, i18n multi-lang, Shariah, legal pages) |
 | `donationchain_mobile/` | Flutter app — role select (Donate / Need help), apply, cases, donate, impact dashboard, Zakat, FCM |
 | `donationchain_backend/` | Node.js API — FCM, auth/OTP, SMS, ledger, Merkle, cases/apply, zakat, payments, organizations, shariah, RBAC, Docker + CI |
 | `donationchain_contracts/` | Solidity `DonationRegistry` + Hardhat |
@@ -32,7 +32,7 @@ Pakistan-focused, international-ready. Separate donor & seeker paths. Zakat (Nis
 
 Payments always go to **institutions** (hospital / school / vendor / utility), never personal cash accounts.
 
-**Demo OTP (web + mobile):** `123456`
+**OTP:** real SMS when backend `SMS_PROVIDER` is configured. Dev-only offline OTP only if Admin disables Production mode.
 
 ---
 
@@ -40,7 +40,7 @@ Payments always go to **institutions** (hospital / school / vendor / utility), n
 
 ### Web
 - Verified cases browse + search/filter
-- Donate flow (JazzCash / EasyPaisa / Raast / Card simulation)
+- Donate flow (JazzCash / EasyPaisa / Raast ISO 20022 / Card — live when keys set)
 - Digital receipt + impact dashboard + CSV export
 - Seeker apply form (`apply.html`)
 - Donor register + dashboard
@@ -49,12 +49,12 @@ Payments always go to **institutions** (hospital / school / vendor / utility), n
 - Shariah Compliance Board (`/shariah/`)
 - Hash-chain ledger + Merkle batch proofs + Explorer
 - Smart-contract hooks (`DonationRegistry`)
-- PWA, i18n (EN/UR), skip-link / a11y baseline
+- PWA, i18n (en/ur/ar/fr/id/ms/tr/bn/hi/sw), country Nisab profiles, skip-link / a11y baseline
 - Organizations + privacy + theme/RBAC client
 
 ### Mobile (Flutter)
 - Role select: Donate vs Need help
-- OTP login (demo `123456`)
+- OTP login (production SMS via backend)
 - Apply screen (seeker)
 - Cases list + Donate screen + receipt ID on success
 - Impact dashboard (lifetime donated, history, empty state)
@@ -157,3 +157,22 @@ Push to `main` → Actions deploys `donationchain/` to GitHub Pages automaticall
 ## License
 
 Demo / educational use.
+
+
+---
+
+## Go-live (production)
+
+1. **Push** `main` → GitHub Actions deploys Pages automatically.
+2. Backend `.env` from `donationchain_backend/.env.example`:
+   - `NODE_ENV=production`
+   - `JWT_SECRET` (strong random)
+   - SMS (Twilio or other) — real OTP
+   - `RAAST_MODE=live` + bank/PSP API keys, IBAN, webhook secret
+3. Admin → **Production mode** ON (default).
+4. Review Privacy / Terms with counsel.
+5. Webhook URL: `https://<api-host>/api/payments/webhook/raast`
+
+Details: `donationchain/PRODUCTION.md` · Deploy: `DEPLOY.md`
+
+**Local commits may be ahead of GitHub** — need a valid PAT to `git push origin main`.

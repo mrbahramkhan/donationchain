@@ -1,5 +1,8 @@
 # Production mode
 
+**Status:** Production mode ON by default (finalized).
+
+
 Default: **productionMode = true** (demo OTP, sample analytics data, sandbox payment UI defaults are off).
 
 ## Checklist before go-live

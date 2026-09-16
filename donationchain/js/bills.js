@@ -1,6 +1,6 @@
 /**
  * DonationChain — Utility bill payment
- * Lookup (demo) + pay direct to provider account — never personal cash.
+ * Bill lookup + pay direct to provider account — never personal cash. Falls back to deterministic estimate if API offline.
  */
 const DCBills = (() => {
   const HISTORY_KEY = 'dc_bill_payments_v1';
