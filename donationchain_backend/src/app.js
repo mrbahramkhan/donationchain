@@ -63,6 +63,7 @@ function createApp(options = {}) {
   app.use('/api/organizations', organizationsRouter);
   app.use('/api/shariah', shariahRouter);
   app.use('/api/bills', billsRouter);
+  app.use('/api/fx', fxRouter);
   app.use('/api/payments', paymentsRouter);
 
   // Device FCM tokens — JWT-bound (see routes/devices.js)
