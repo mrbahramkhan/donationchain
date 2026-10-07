@@ -241,12 +241,12 @@ class _CasesScreenState extends State<CasesScreen> {
               const SizedBox(height: 10),
               Text(c.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
-              Text('${c.city} • ${c.vendor}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              Text('${c.city}, ${c.country} • ${c.vendor}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
               const SizedBox(height: 14),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('PKR ${c.raised.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text('${c.currency} ${c.raised.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600)),
                   Text('Goal ${c.amount.toStringAsFixed(0)}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                 ],
               ),

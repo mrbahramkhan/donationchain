@@ -1,22 +1,23 @@
 // DonationChain — Professional Core App
 const DC = {
   cases: [
-    { id: 1, title: "Heart Surgery — Ali, 8 yrs", category: "medical", city: "Lahore", amount: 85000, raised: 62000, urgency: "critical", verified: true, vendor: "Mayo Hospital", desc: "Congenital heart defect. Surgery scheduled pending funds." },
-    { id: 2, title: "School Fees — Fatima, Class 8", category: "education", city: "Karachi", amount: 42000, raised: 28000, urgency: "high", verified: true, vendor: "Beaconhouse School", desc: "Annual fees + books. Enrollment confirmed by school." },
-    { id: 3, title: "Monthly Food Package — Family of 6", category: "food", city: "Rawalpindi", amount: 15000, raised: 9000, urgency: "medium", verified: true, vendor: "Verified Grocery Vendor", desc: "Staples for 30 days. GPS delivery with photo proof." },
-    { id: 4, title: "Utility Bill (WAPDA) — Widow Household", category: "utility", city: "Faisalabad", amount: 18500, raised: 12000, urgency: "high", verified: true, vendor: "WAPDA", desc: "Overdue electricity bill. Direct payment to utility." },
-    { id: 9, title: "SNGPL Gas Bill — Low-income Family", category: "utility", city: "Lahore", amount: 9200, raised: 2100, urgency: "high", verified: true, vendor: "SNGPL", desc: "Winter gas arrears. Pay exact bill to SNGPL account only." },
-    { id: 10, title: "Water Bill (WASA) — Orphan Household", category: "utility", city: "Multan", amount: 4500, raised: 0, urgency: "medium", verified: true, vendor: "WASA Multan", desc: "Connection at risk of disconnect. Direct board payment." },
-    { id: 5, title: "Cancer Treatment — Ayesha", category: "medical", city: "Islamabad", amount: 220000, raised: 145000, urgency: "critical", verified: true, vendor: "Shifa International", desc: "Chemotherapy cycle 3 of 6. Hospital invoice verified." },
-    { id: 6, title: "University Semester Fee — Hassan", category: "education", city: "Lahore", amount: 65000, raised: 40000, urgency: "medium", verified: true, vendor: "UET Lahore", desc: "Engineering semester fee. Direct to university account." },
-    { id: 7, title: "Emergency Medicines — Elderly Couple", category: "medical", city: "Multan", amount: 12000, raised: 3500, urgency: "high", verified: true, vendor: "Aga Khan Pharmacy", desc: "Prescription verified. Pharmacy fulfillment only." },
-    { id: 8, title: "Ramadan Ration Drive — 20 Families", category: "food", city: "Peshawar", amount: 80000, raised: 52000, urgency: "medium", verified: true, vendor: "Local NGO Partner", desc: "Bulk ration packs. Community distribution with OTP." }
+    { id: 1, title: "Heart Surgery — Amina, 7 yrs", category: "medical", city: "Cairo", country: "EG", currency: "EGP", amount: 185000, raised: 120000, urgency: "critical", verified: true, vendor: "Children's Cancer Hospital Egypt", desc: "Congenital heart repair. Hospital invoice verified; direct institutional payout." },
+    { id: 2, title: "Secondary School Fees — Fatima", category: "education", city: "Jakarta", country: "ID", currency: "IDR", amount: 8500000, raised: 5200000, urgency: "high", verified: true, vendor: "SMA Negeri Partner School", desc: "Annual fees + books. Enrollment confirmed by school accounts office." },
+    { id: 3, title: "Monthly Food Package — Family of 6", category: "food", city: "Nairobi", country: "KE", currency: "KES", amount: 18000, raised: 11000, urgency: "medium", verified: true, vendor: "Verified Grocery Cooperative", desc: "Staples for 30 days. GPS delivery with photo proof." },
+    { id: 4, title: "Electricity Arrears — Widow Household", category: "utility", city: "Lahore", country: "PK", currency: "PKR", amount: 18500, raised: 12000, urgency: "high", verified: true, vendor: "Regional Power Utility", desc: "Overdue electricity bill. Direct payment to utility account only." },
+    { id: 5, title: "Cancer Treatment — Cycle 3", category: "medical", city: "Istanbul", country: "TR", currency: "TRY", amount: 95000, raised: 61000, urgency: "critical", verified: true, vendor: "Acibadem Healthcare Group", desc: "Chemotherapy cycle. Hospital invoice verified." },
+    { id: 6, title: "University Semester Fee — Engineering", category: "education", city: "Dhaka", country: "BD", currency: "BDT", amount: 45000, raised: 28000, urgency: "medium", verified: true, vendor: "BUET Partner Accounts", desc: "Semester fee. Direct transfer to university account." },
+    { id: 7, title: "Emergency Medicines — Elderly Couple", category: "medical", city: "Kuala Lumpur", country: "MY", currency: "MYR", amount: 2200, raised: 900, urgency: "high", verified: true, vendor: "Verified Community Pharmacy", desc: "Prescription verified. Pharmacy fulfillment only." },
+    { id: 8, title: "Ramadan Food Drive — 20 Families", category: "food", city: "Amman", country: "JO", currency: "JOD", amount: 3200, raised: 2100, urgency: "medium", verified: true, vendor: "Local NGO Partner", desc: "Bulk ration packs. Community distribution with OTP confirmation." },
+    { id: 9, title: "Gas Utility Bill — Low-income Family", category: "utility", city: "Casablanca", country: "MA", currency: "MAD", amount: 1450, raised: 400, urgency: "high", verified: true, vendor: "National Gas Utility", desc: "Winter arrears. Pay exact bill to utility account only." },
+    { id: 10, title: "Water Board Bill — Orphan Household", category: "utility", city: "Lagos", country: "NG", currency: "NGN", amount: 85000, raised: 12000, urgency: "medium", verified: true, vendor: "Municipal Water Board", desc: "Connection at risk. Direct board payment." }
   ],
   selectedCase: null,
   filter: "all",
   search: "",
   user: null
 };
+
 
 function formatPKR(n) {
   // Global: uses selected country currency (not PKR-only)

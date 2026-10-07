@@ -3,6 +3,8 @@ class DonationCase {
   final String title;
   final String category;
   final String city;
+  final String country;
+  final String currency;
   final int amount;
   final int raised;
   final String urgency;
@@ -14,6 +16,8 @@ class DonationCase {
     required this.title,
     required this.category,
     required this.city,
+    this.country = 'US',
+    this.currency = 'USD',
     required this.amount,
     required this.raised,
     required this.urgency,

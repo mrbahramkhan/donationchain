@@ -63,7 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Text('Lifetime Donated', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                         const SizedBox(height: 4),
                         Text(
-                          'PKR ${NumberFormat('#,###').format(total)}',
+                          '${NumberFormat('#,###').format(total)} (multi-currency total)',
                           style: const TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.w800,
@@ -152,7 +152,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              'PKR ${NumberFormat('#,###').format(d.amount)}',
+              '${NumberFormat('#,###').format(d.amount)}',
               style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.success),
             ),
             Text(d.status, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),

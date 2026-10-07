@@ -30,7 +30,7 @@ class _DonateScreenState extends State<DonateScreen> {
     final amount = int.tryParse(amountCtrl.text) ?? 0;
     if (amount < 100) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Minimum donation PKR 100')),
+        const SnackBar(content: Text('Minimum donation 100 (local currency units)')),
       );
       return;
     }
@@ -64,7 +64,7 @@ class _DonateScreenState extends State<DonateScreen> {
           ],
         ),
         content: Text(
-          'PKR ${amount.toStringAsFixed(0)} sent directly to verified vendor via ${methods[method]}.\n\n'
+          '${widget.caseItem?.currency ?? 'USD'} ${amount.toStringAsFixed(0)} sent directly to verified vendor via ${methods[method]}.\n\n'
           'Receipt ID: $receiptId\n\n'
           'Digital receipt saved. Proof (invoice / photo) will appear in Your Impact within 48 hours. Funds never go to personal cash accounts.',
         ),
@@ -104,7 +104,7 @@ class _DonateScreenState extends State<DonateScreen> {
                     if (widget.caseItem != null) ...[
                       const SizedBox(height: 6),
                       Text(
-                        '${widget.caseItem!.city} • ${widget.caseItem!.vendor}',
+                        '${widget.caseItem!.city}, ${widget.caseItem!.country} • ${widget.caseItem!.vendor}',
                         style: TextStyle(color: Colors.grey.shade600),
                       ),
                     ],

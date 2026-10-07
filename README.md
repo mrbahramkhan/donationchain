@@ -4,7 +4,9 @@ End-to-end transparent donation platform — **Web + Flutter mobile + Node backe
 
 World-level donation platform — designed to run in any country. Separate donor & seeker paths. Multi-currency Zakat (Nisab + Hawl). Multi-language UI. Ledger + Merkle. Shariah board. Raast ISO 20022 payments. RBAC. Production mode by default. Accessibility CI.
 
-**Live:** https://mrbahramkhan.github.io/donationchain/  
+**Release:** v2.2.0-global (Global Final) · **Live:** https://mrbahramkhan.github.io/donationchain/
+
+Release notes: `docs/RELEASE_v2.2.0_GLOBAL.md` · Formal doc: `DonationChain_Global_Final_Release_v2.2.0.docx`  
 **Repo:** https://github.com/mrbahramkhan/donationchain
 
 ---
