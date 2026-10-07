@@ -523,20 +523,82 @@
       </div>
       <div class="mb-4">
         <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Payment method</label>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-2 gap-2" id="pay-method-grid">
           <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm">
-            <input type="radio" name="paymethod" value="card" checked class="text-primary" /> Card
+            <input type="radio" name="paymethod" value="card" checked class="text-primary" onchange="onPayMethodChange()" /> Card
           </label>
           <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm">
-            <input type="radio" name="paymethod" value="bank" class="text-primary" /> Bank transfer
+            <input type="radio" name="paymethod" value="bank" class="text-primary" onchange="onPayMethodChange()" /> Bank transfer
           </label>
           <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm">
-            <input type="radio" name="paymethod" value="raast" class="text-primary" /> Instant rail (Raast / local)
+            <input type="radio" name="paymethod" value="raast" class="text-primary" onchange="onPayMethodChange()" /> Instant rail
+          </label>
+          <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm">
+            <input type="radio" name="paymethod" value="jazzcash" class="text-primary" onchange="onPayMethodChange()" /> JazzCash
+          </label>
+          <label class="border border-slate-200 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-blue-50 text-sm col-span-2 sm:col-span-1">
+            <input type="radio" name="paymethod" value="easypaisa" class="text-primary" onchange="onPayMethodChange()" /> EasyPaisa
           </label>
         </div>
+        <p class="text-[11px] text-slate-400 mt-2">Institutional payout only — never to a personal cash account of the beneficiary.</p>
       </div>
-      <div id="anon-wrap" class="mb-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-        <label class="flex items-start gap-3 text-sm text-slate-700 cursor-pointer">
+
+      <!-- Method-specific instrument details -->
+      <div id="pay-panel-card" class="mb-4 space-y-3">
+        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Card details</p>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1" for="card-name">Name on card</label>
+          <input id="card-name" autocomplete="cc-name" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none" placeholder="As printed on card" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1" for="card-number">Card number</label>
+          <input id="card-number" inputmode="numeric" autocomplete="cc-number" maxlength="19" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:ring-2 focus:ring-primary focus:outline-none" placeholder="ACCT-000015" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-slate-500 mb-1" for="card-expiry">Expiry (MM/YY)</label>
+            <input id="card-expiry" inputmode="numeric" autocomplete="cc-exp" maxlength="5" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:ring-2 focus:ring-primary focus:outline-none" placeholder="12/28" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1" for="card-cvc">CVC</label>
+            <input id="card-cvc" inputmode="numeric" autocomplete="cc-csc" maxlength="4" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:ring-2 focus:ring-primary focus:outline-none" placeholder="123" />
+          </div>
+        </div>
+        <p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">Sandbox checkout: details are validated locally and <strong>not charged</strong> until a live card gateway (e.g. Stripe) is configured on the API.</p>
+      </div>
+
+      <div id="pay-panel-bank" class="mb-4 hidden space-y-3">
+        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Bank transfer to institution</p>
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm space-y-1.5">
+          <div class="flex justify-between gap-2"><span class="text-slate-500">Beneficiary</span><span id="bank-beneficiary" class="font-medium text-right">Verified institution</span></div>
+          <div class="flex justify-between gap-2"><span class="text-slate-500">Account / IBAN</span><span id="bank-iban" class="font-mono text-xs text-right">Will show after case select</span></div>
+          <div class="flex justify-between gap-2"><span class="text-slate-500">Reference</span><span id="bank-ref" class="font-mono text-xs">DC-REF</span></div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1" for="bank-sender">Your account holder name</label>
+          <input id="bank-sender" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none" placeholder="Name on the sending account" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1" for="bank-txn">Transfer reference / txn ID</label>
+          <input id="bank-txn" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:ring-2 focus:ring-primary focus:outline-none" placeholder="Bank transaction ID after transfer" />
+        </div>
+        <p class="text-[11px] text-slate-500">Transfer the exact amount to the institutional account above, then enter the bank reference so we can match the credit.</p>
+      </div>
+
+      <div id="pay-panel-wallet" class="mb-4 hidden space-y-3">
+        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Mobile wallet / instant rail</p>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1" for="wallet-phone">Mobile account number</label>
+          <input id="wallet-phone" inputmode="tel" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none" placeholder="03XX XXXXXXX or +country code" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1" for="wallet-cnic">National ID (optional, if required by rail)</label>
+          <input id="wallet-cnic" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:outline-none" placeholder="National ID / passport last digits" />
+        </div>
+        <p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">You will confirm the payment in your wallet app (OTP / PIN). Sandbox mode simulates confirmation when the payment API has no live merchant keys.</p>
+      </div>
+
+      <label class="flex items-start gap-3 text-sm text-slate-700 cursor-pointer">
           <input type="checkbox" id="anonymous" class="rounded text-primary mt-1" />
           <span>
             <span class="font-semibold text-slate-900">Khamosh / Anonymous donor</span>

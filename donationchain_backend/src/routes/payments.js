@@ -39,9 +39,29 @@ function publicPayment(p) {
     settledAt: p.settledAt || null,
     failureReason: p.failureReason || null,
     realtime: true,
+    instrument: p.instrument || null,
     endToEndId: p.endToEndId || null,
     uetr: p.uetr || null,
   };
+}
+
+
+/** Never persist full card numbers / secrets — only masked instrument metadata */
+function sanitizeInstrument(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const type = String(raw.type || '').toLowerCase();
+  const out = { type };
+  if (raw.last4) out.last4 = String(raw.last4).slice(-4);
+  if (raw.brand) out.brand = String(raw.brand).slice(0, 32);
+  if (raw.expMonth) out.expMonth = Number(raw.expMonth) || undefined;
+  if (raw.expYear) out.expYear = Number(raw.expYear) || undefined;
+  if (raw.nameOnCard) out.nameOnCard = String(raw.nameOnCard).slice(0, 80);
+  if (raw.senderName) out.senderName = String(raw.senderName).slice(0, 80);
+  if (raw.transferRef) out.transferRef = String(raw.transferRef).slice(0, 64);
+  if (raw.msisdnLast4) out.msisdnLast4 = String(raw.msisdnLast4).slice(-4);
+  if (raw.msisdnMasked) out.msisdnMasked = String(raw.msisdnMasked).slice(0, 32);
+  // Explicitly drop dangerous fields if client sent them
+  return out;
 }
 
 function scheduleSandboxSettle(paymentId, delayMs) {
@@ -249,6 +269,7 @@ router.post('/initiate', async (req, res) => {
       beneficiaryIban,
       billReference: b.billReference || null,
       anonymous: !!b.anonymous,
+      instrument: sanitizeInstrument(b.instrument),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       settledAt: status === 'settled' ? new Date().toISOString() : null,

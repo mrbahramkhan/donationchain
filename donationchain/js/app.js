@@ -154,6 +154,8 @@ function openDonate(isZakat) {
   const modal = document.getElementById("donate-modal");
   if (!modal) return;
   modal.classList.remove("hidden");
+  try { onPayMethodChange(); } catch (_) {}
+
   modal.classList.add("flex");
   document.body.style.overflow = "hidden";
 
@@ -312,6 +314,111 @@ function setQuickAmount(v) {
   if (el) el.value = v;
 }
 
+
+function onPayMethodChange() {
+  const method = document.querySelector('input[name="paymethod"]:checked')?.value || "card";
+  const card = document.getElementById("pay-panel-card");
+  const bank = document.getElementById("pay-panel-bank");
+  const wallet = document.getElementById("pay-panel-wallet");
+  if (card) card.classList.toggle("hidden", method !== "card");
+  if (bank) bank.classList.toggle("hidden", method !== "bank");
+  if (wallet) wallet.classList.toggle("hidden", !["raast", "jazzcash", "easypaisa"].includes(method));
+  // Update bank beneficiary from selected case
+  try {
+    const vendor = DC.selectedCase?.vendor || "DonationChain Institutional Pool";
+    const ben = document.getElementById("bank-beneficiary");
+    const ibanEl = document.getElementById("bank-iban");
+    const refEl = document.getElementById("bank-ref");
+    if (ben) ben.textContent = vendor;
+    if (ibanEl) {
+      const org = window.DCOrgs && DCOrgs.findByName ? DCOrgs.findByName(vendor) : null;
+      ibanEl.textContent = (org && org.bankIbanMasked) || "Institutional account (provided at settlement)";
+    }
+    if (refEl) refEl.textContent = "DC-" + (DC.selectedCase?.id || "GEN") + "-" + Date.now().toString(36).toUpperCase().slice(-6);
+  } catch (_) {}
+}
+
+function luhnOk(num) {
+  const s = String(num).replace(/\D/g, "");
+  if (s.length < 13 || s.length > 19) return false;
+  let sum = 0, alt = false;
+  for (let i = s.length - 1; i >= 0; i--) {
+    let n = parseInt(s[i], 10);
+    if (alt) {
+      n *= 2;
+      if (n > 9) n -= 9;
+    }
+    sum += n;
+    alt = !alt;
+  }
+  return sum % 10 === 0;
+}
+
+function validatePaymentInstrument(method) {
+  const err = document.getElementById("donate-error");
+  const show = (msg) => {
+    if (err) {
+      err.textContent = msg;
+      err.classList.remove("hidden");
+    }
+    return false;
+  };
+  if (method === "card") {
+    const name = (document.getElementById("card-name")?.value || "").trim();
+    const number = (document.getElementById("card-number")?.value || "").replace(/\s+/g, "");
+    const expiry = (document.getElementById("card-expiry")?.value || "").trim();
+    const cvc = (document.getElementById("card-cvc")?.value || "").trim();
+    if (name.length < 2) return show("Enter the name on the card.");
+    if (!luhnOk(number)) return show("Enter a valid card number.");
+    if (!/^\d{2}\/\d{2}$/.test(expiry)) return show("Expiry must be MM/YY.");
+    const [mm, yy] = expiry.split("/").map((x) => parseInt(x, 10));
+    if (mm < 1 || mm > 12) return show("Invalid expiry month.");
+    if (!/^\d{3,4}$/.test(cvc)) return show("Enter a valid CVC.");
+    return {
+      ok: true,
+      instrument: {
+        type: "card",
+        brand: number.startsWith("4") ? "visa" : number.startsWith("5") ? "mastercard" : "card",
+        last4: number.slice(-4),
+        expMonth: mm,
+        expYear: 2000 + yy,
+        nameOnCard: name,
+      },
+    };
+  }
+  if (method === "bank") {
+    const sender = (document.getElementById("bank-sender")?.value || "").trim();
+    const txn = (document.getElementById("bank-txn")?.value || "").trim();
+    if (sender.length < 2) return show("Enter the sending account holder name.");
+    if (txn.length < 4) return show("Enter the bank transfer reference / transaction ID.");
+    return {
+      ok: true,
+      instrument: {
+        type: "bank",
+        senderName: sender,
+        transferRef: txn,
+        beneficiary: document.getElementById("bank-beneficiary")?.textContent || "",
+        ibanMasked: document.getElementById("bank-iban")?.textContent || "",
+      },
+    };
+  }
+  if (["raast", "jazzcash", "easypaisa"].includes(method)) {
+    const phone = (document.getElementById("wallet-phone")?.value || "").replace(/\s+/g, "");
+    if (phone.replace(/\D/g, "").length < 10) return show("Enter a valid mobile wallet number.");
+    return {
+      ok: true,
+      instrument: {
+        type: method,
+        msisdnMasked: phone.replace(/\d(?=\d{4})/g, "•"),
+        msisdnLast4: phone.replace(/\D/g, "").slice(-4),
+        nationalIdHint: (document.getElementById("wallet-cnic")?.value || "").trim() || null,
+      },
+    };
+  }
+  return { ok: true, instrument: { type: method } };
+}
+
+
 async function processPayment() {
   const amountEl = document.getElementById("donate-amount");
   const err = document.getElementById("donate-error");
@@ -320,6 +427,10 @@ async function processPayment() {
   if (method === "stripe") method = "card";
   if (method === "local" || method === "instant") method = "raast";
   const anon = document.getElementById("anonymous")?.checked;
+
+  const instrumentCheck = validatePaymentInstrument(method);
+  if (!instrumentCheck || instrumentCheck.ok === false) return;
+  const instrument = instrumentCheck.instrument || null;
 
   const dcfg = window.DCConfig ? DCConfig.load().donations : { minAmount: 100, maxAmount: 500000000 };
   const minA = dcfg.minAmount || 100;
@@ -372,6 +483,7 @@ async function processPayment() {
             vendorName: vendor,
             purpose: isZakatFlow ? "zakat" : "donation",
             anonymous: !!anon,
+            instrument,
             idempotencyKey: "don-" + Date.now() + "-" + amount + "-" + method,
           },
           {
@@ -442,6 +554,14 @@ async function processPayment() {
       platformFeePercent: (window.DCConfig ? DCConfig.load().donations.platformFeePercent : 0) || 0,
       providerRef,
       paymentMode: mode,
+      instrumentSummary: instrument
+        ? {
+            type: instrument.type,
+            last4: instrument.last4 || instrument.msisdnLast4 || null,
+            brand: instrument.brand || null,
+            transferRef: instrument.transferRef || null,
+          }
+        : null,
       realtime: !!window.DCPayments,
       donorName: anon ? "Anonymous donor" : (realName || "Donor"),
     };
