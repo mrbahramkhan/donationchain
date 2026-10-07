@@ -29,11 +29,32 @@ const DCPayments = (() => {
     };
   }
 
+  function authHeaders() {
+    const h = { 'Content-Type': 'application/json' };
+    try {
+      const tok =
+        localStorage.getItem('dc_token') ||
+        localStorage.getItem('dc_jwt') ||
+        (window.AdminAuth && AdminAuth.getToken && AdminAuth.getToken());
+      if (tok) h['Authorization'] = 'Bearer ' + tok;
+    } catch (_) {}
+    return h;
+  }
+
   async function initiate(body) {
+    const payload = Object.assign({}, body);
+    if (!payload.currency) {
+      try {
+        payload.currency =
+          (window.DCLocales && DCLocales.getCountry && DCLocales.getCountry().currency) || 'USD';
+      } catch (_) {
+        payload.currency = 'USD';
+      }
+    }
     const res = await fetch(apiBase() + '/api/payments/initiate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) {

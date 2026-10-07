@@ -24,7 +24,7 @@ function publicPayment(p) {
     method: p.method,
     status: p.status,
     amount: p.amount,
-    currency: p.currency || 'PKR',
+    currency: p.currency || 'USD',
     providerRef: p.providerRef,
     mode: p.mode,
     purpose: p.purpose,
@@ -71,41 +71,78 @@ function scheduleSandboxSettle(paymentId, delayMs) {
   }, Math.max(200, Math.floor(delayMs * 0.35)));
 }
 
-/** Demo institutional IBANs by vendor keyword */
-function resolveBeneficiaryIban(vendorName, explicitIban) {
+/** Institutional payout account — explicit IBAN preferred; else sandbox institutional account */
+function resolveBeneficiaryIban(vendorName, explicitIban, country) {
   if (explicitIban) return String(explicitIban).replace(/\s/g, '').toUpperCase();
   const v = String(vendorName || '').toLowerCase();
-  if (v.includes('wapda') || v.includes('lesco')) return 'PK36SCBL0000001122334455';
-  if (v.includes('sngpl')) return 'PK12HABB0000005566778899';
-  if (v.includes('ssgc')) return 'PK90MEZN0000009988776655';
-  if (v.includes('wasa')) return 'PK33UNIL0000001234500001';
-  if (v.includes('mayo')) return 'PK45HABB0000001122330001';
-  if (v.includes('shifa')) return 'PK67SCBL0000004455660002';
-  if (v.includes('uet') || v.includes('beacon')) return 'PK11MEZN0000007788990003';
-  return raast.MERCHANT_IBAN;
+  const cc = String(country || '').toUpperCase();
+  // Pakistan utility / hospital demos (Raast-compatible sample IBANs)
+  if (cc === 'PK' || /wapda|lesco|sngpl|ssgc|wasa|mayo|shifa|uet|beacon|power utility/.test(v)) {
+    if (v.includes('wapda') || v.includes('lesco') || v.includes('power')) return 'PK36SCBL0000001122334455';
+    if (v.includes('sngpl') || v.includes('gas')) return 'PK12HABB0000005566778899';
+    if (v.includes('ssgc')) return 'PK90MEZN0000009988776655';
+    if (v.includes('wasa') || v.includes('water')) return 'PK33UNIL0000001234500001';
+    if (v.includes('mayo')) return 'PK45HABB0000001122330001';
+    if (v.includes('shifa')) return 'PK67SCBL0000004455660002';
+    if (v.includes('uet') || v.includes('beacon')) return 'PK11MEZN0000007788990003';
+    return raast.MERCHANT_IBAN || 'PK00DONATIONCHAIN000000001';
+  }
+  // Global sandbox institutional account (not a real IBAN — live mode must pass beneficiaryIban)
+  return process.env.DEFAULT_BENEFICIARY_IBAN || 'GB00DONATIONCHAININST001';
 }
 
 router.get('/config', (_req, res) => {
   res.json({
     ok: true,
     methods: {
-      raast: { enabled: true, ...raast.configPublic() },
+      raast: { enabled: process.env.RAAST_ENABLED !== 'false', ...raast.configPublic() },
       jazzcash: {
         enabled: process.env.JAZZCASH_ENABLED !== 'false',
         mode: process.env.JAZZCASH_MERCHANT_ID ? 'live' : 'sandbox',
+        label: 'JazzCash',
       },
       easypaisa: {
         enabled: process.env.EASYPAISA_ENABLED !== 'false',
         mode: process.env.EASYPAISA_STORE_ID ? 'live' : 'sandbox',
+        label: 'EasyPaisa',
       },
       card: {
-        enabled: process.env.STRIPE_SECRET_KEY ? true : process.env.CARD_ENABLED !== 'false',
+        enabled: process.env.CARD_ENABLED !== 'false',
         mode: process.env.STRIPE_SECRET_KEY ? 'live' : 'sandbox',
+        label: 'Card',
+        stripe: !!process.env.STRIPE_SECRET_KEY,
+      },
+      bank: {
+        enabled: process.env.BANK_ENABLED !== 'false',
+        mode: process.env.BANK_LIVE === 'true' ? 'live' : 'sandbox',
+        label: 'Bank transfer',
       },
     },
+    currencies: ['USD', 'EUR', 'GBP', 'PKR', 'SAR', 'AED', 'TRY', 'IDR', 'MYR', 'BDT', 'EGP', 'NGN', 'KES'],
     realtime: { polling: true, sse: true, webhook: true },
+    institutionalOnly: true,
   });
 });
+
+router.get('/', (_req, res) => {
+  res.json({ ok: true, payments: store.list(30).map(publicPayment) });
+});
+
+router.get('/errors', (_req, res) => {
+  try {
+    const catalog = require('../services/raastErrorCodes');
+    res.json({
+      ok: true,
+      platform: catalog.PLATFORM,
+      isoTxStatus: catalog.ISO_TX_STATUS,
+      isoStatusReason: catalog.ISO_STATUS_REASON,
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+
 
 /**
  * body: {
@@ -121,13 +158,21 @@ router.post('/initiate', async (req, res) => {
     const amount = Math.round(Number(b.amount) || 0);
     let method = String(b.method || 'card').toLowerCase();
     if (method === 'stripe') method = 'card';
-    if (method === 'bank') method = 'bank';
-    const minAmt = Number(process.env.PAYMENT_MIN_AMOUNT) || 1;
-    if (amount < minAmt) {
-      return res.status(400).json({ ok: false, error: 'Amount below minimum (' + minAmt + ')' });
+    if (method === 'local' || method === 'instant') method = 'raast';
+    const allowed = new Set(['raast', 'jazzcash', 'easypaisa', 'card', 'bank']);
+    if (!allowed.has(method)) {
+      return res.status(400).json({ ok: false, error: 'Unsupported payment method: ' + method, code: 'INVALID_METHOD' });
     }
-    if (amount > 2000000) {
-      return res.status(400).json({ ok: false, error: 'Amount exceeds limit' });
+    const currency = String(b.currency || 'USD').toUpperCase().slice(0, 3);
+    const country = String(b.country || '').toUpperCase().slice(0, 2);
+    const minAmt = Number(process.env.PAYMENT_MIN_AMOUNT) || 1;
+    // High ceiling for weak currencies (IDR, NGN, etc.); live gateways enforce their own caps
+    const maxAmt = Number(process.env.PAYMENT_MAX_AMOUNT) || 500000000;
+    if (!Number.isFinite(amount) || amount < minAmt) {
+      return res.status(400).json({ ok: false, error: 'Amount below minimum (' + minAmt + ')', code: 'INVALID_AMOUNT' });
+    }
+    if (amount > maxAmt) {
+      return res.status(400).json({ ok: false, error: 'Amount exceeds limit', code: 'AMOUNT_LIMIT' });
     }
 
     const idempotencyKey = b.idempotencyKey ? String(b.idempotencyKey) : null;
@@ -137,7 +182,7 @@ router.post('/initiate', async (req, res) => {
     }
 
     const vendorName = b.vendorName || b.caseTitle || 'DonationChain Institutional';
-    const beneficiaryIban = resolveBeneficiaryIban(vendorName, b.beneficiaryIban);
+    const beneficiaryIban = resolveBeneficiaryIban(vendorName, b.beneficiaryIban, country || b.country);
     const purpose = b.purpose || (b.billReference ? 'bill' : 'donation');
     const id = 'PAY_' + crypto.randomBytes(6).toString('hex').toUpperCase();
 
@@ -167,19 +212,19 @@ router.post('/initiate', async (req, res) => {
       provider = 'raast';
       settleMs = providerResult.settleAfterMs || raast.SETTLE_MS;
     } else {
-      // JazzCash / EasyPaisa / Card — sandbox async; live hooks via env
-      mode =
+      // JazzCash / EasyPaisa / Card / Bank — sandbox async settle; live via env credentials
+      const liveConfigured =
         (method === 'jazzcash' && process.env.JAZZCASH_MERCHANT_ID) ||
         (method === 'easypaisa' && process.env.EASYPAISA_STORE_ID) ||
-        (method === 'card' && process.env.STRIPE_SECRET_KEY)
-          ? 'live'
-          : 'sandbox';
+        (method === 'card' && process.env.STRIPE_SECRET_KEY) ||
+        (method === 'bank' && process.env.BANK_LIVE === 'true');
+      mode = liveConfigured ? 'live' : 'sandbox';
       providerRef = method.toUpperCase() + '-' + crypto.randomBytes(3).toString('hex').toUpperCase();
       status = 'pending';
       if (mode === 'live') {
-        // Placeholder: mark processing; production would redirect to hosted checkout
-        status = 'processing';
-        providerRef = await initiateWalletLive(method, amount, id);
+        const live = await initiateWalletLive(method, amount, id, currency);
+        providerRef = live.providerRef || providerRef;
+        status = live.status || 'processing';
       }
     }
 
@@ -190,7 +235,8 @@ router.post('/initiate', async (req, res) => {
       method,
       status,
       amount,
-      currency: 'PKR',
+      currency,
+      country: country || null,
       mode,
       providerRef,
       endToEndId: providerResult && providerResult.endToEndId,
@@ -210,7 +256,12 @@ router.post('/initiate', async (req, res) => {
       iso20022: providerResult && providerResult.iso20022,
     });
 
-    if (mode === 'sandbox' && status !== 'settled' && status !== 'failed') {
+    // Sandbox always settles async; live only if PAYMENT_LIVE_AUTO_SETTLE (dev convenience)
+    const shouldAutoSettle =
+      status !== 'settled' &&
+      status !== 'failed' &&
+      (mode === 'sandbox' || process.env.PAYMENT_LIVE_AUTO_SETTLE === 'true');
+    if (shouldAutoSettle) {
       scheduleSandboxSettle(id, settleMs);
     }
 
@@ -235,19 +286,40 @@ router.post('/initiate', async (req, res) => {
   }
 });
 
-async function initiateWalletLive(method, amount, orderId) {
-  // Extension points for JazzCash Mobile Account / EasyPaisa MA / Stripe PaymentIntent
+async function initiateWalletLive(method, amount, orderId, currency) {
+  // Extension points — returns { providerRef, status, checkoutUrl? }
+  const cur = currency || 'USD';
   if (method === 'card' && process.env.STRIPE_SECRET_KEY) {
-    // Stripe PaymentIntent would be created here
-    return 'stripe_pi_pending_' + orderId;
+    // Production: create Stripe PaymentIntent / Checkout Session here
+    return {
+      providerRef: 'stripe_pi_' + orderId,
+      status: 'processing',
+      checkoutUrl: null,
+      note: 'Stripe PaymentIntent placeholder — set webhook to /api/payments/webhook/stripe when wired',
+    };
   }
   if (method === 'jazzcash' && process.env.JAZZCASH_MERCHANT_ID) {
-    return 'jc_pending_' + orderId;
+    return {
+      providerRef: 'jc_' + orderId,
+      status: 'processing',
+      checkoutUrl: process.env.JAZZCASH_CHECKOUT_URL || null,
+    };
   }
   if (method === 'easypaisa' && process.env.EASYPAISA_STORE_ID) {
-    return 'ep_pending_' + orderId;
+    return {
+      providerRef: 'ep_' + orderId,
+      status: 'processing',
+      checkoutUrl: process.env.EASYPAISA_CHECKOUT_URL || null,
+    };
   }
-  return method + '_live_' + orderId;
+  if (method === 'bank') {
+    return {
+      providerRef: 'BANK_' + orderId,
+      status: 'pending',
+      note: 'Awaiting bank credit confirmation',
+    };
+  }
+  return { providerRef: method + '_live_' + orderId, status: 'processing', currency: cur };
 }
 
 /** Server-Sent Events for real-time status (before /:id) */
@@ -417,25 +489,6 @@ router.post('/webhook/raast/sign-test', (req, res) => {
     },
     note: 'POST the same body + X-Raast-Signature to /api/payments/webhook/raast',
   });
-});
-
-router.get('/', (_req, res) => {
-  res.json({ ok: true, payments: store.list(30).map(publicPayment) });
-});
-
-
-router.get('/errors', (_req, res) => {
-  try {
-    const catalog = require('../services/raastErrorCodes');
-    res.json({
-      ok: true,
-      platform: catalog.PLATFORM,
-      isoTxStatus: catalog.ISO_TX_STATUS,
-      isoStatusReason: catalog.ISO_STATUS_REASON,
-    });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
-  }
 });
 
 module.exports = router;
