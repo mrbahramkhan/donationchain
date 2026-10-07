@@ -403,9 +403,10 @@ async function processPayment() {
         payStatus = "settled";
         mode = "offline-local";
         if (err) {
-          err.textContent = "Connected payment API offline — recorded as local institutional settlement.";
-          err.classList.remove("hidden");
+          err.textContent = "";
+          err.classList.add("hidden");
         }
+        try { showToast("Payment API offline — saved as local institutional settlement."); } catch (_) {}
       }
     }
 
@@ -1078,4 +1079,9 @@ function initGlobalLocaleUI() {
     } catch (_) {}
   }
   updateZakatLabels();
+}
+
+// Expose for QA / external hooks
+if (typeof window !== "undefined") {
+  window.DC = DC;
 }

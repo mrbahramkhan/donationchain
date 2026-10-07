@@ -3,7 +3,7 @@
  * Payments should only go to orgs with status "verified" or "active".
  */
 const DCOrgs = (() => {
-  const KEY = "dc_organizations_v1";
+  const KEY = "dc_organizations_v2";
 
   const LEVELS = {
     unlisted: { label: "Unlisted", rank: 0, cls: "bg-slate-100 text-slate-600" },
@@ -14,110 +14,18 @@ const DCOrgs = (() => {
     suspended: { label: "Suspended", rank: 0, cls: "bg-red-50 text-red-700" },
   };
 
-  /** Seed list aligned with demo cases */
+  /** Seed list aligned with global demo cases (web + mobile + API) */
   const defaults = [
-    {
-      id: "org-mayo",
-      name: "Mayo Hospital",
-      type: "hospital",
-      city: "Lahore",
-      registrationNo: "PHC-LHR-001",
-      bankIbanMasked: "PK00••••••••1234",
-      status: "verified",
-      checks: {
-        legalRegistration: true,
-        physicalAddress: true,
-        bankAccountOwnership: true,
-        contactPerson: true,
-        sampleInvoice: true,
-      },
-      verifiedAt: "2026-01-15T00:00:00.000Z",
-    },
-    {
-      id: "org-beacon",
-      name: "Beaconhouse School",
-      type: "school",
-      city: "Karachi",
-      registrationNo: "SEF-KHI-214",
-      bankIbanMasked: "PK00••••••••5678",
-      status: "verified",
-      checks: {
-        legalRegistration: true,
-        physicalAddress: true,
-        bankAccountOwnership: true,
-        contactPerson: true,
-        sampleInvoice: true,
-      },
-      verifiedAt: "2026-02-01T00:00:00.000Z",
-    },
-    {
-      id: "org-shifa",
-      name: "Shifa International",
-      type: "hospital",
-      city: "Islamabad",
-      registrationNo: "PHC-ISB-088",
-      bankIbanMasked: "PK00••••••••9012",
-      status: "verified",
-      checks: {
-        legalRegistration: true,
-        physicalAddress: true,
-        bankAccountOwnership: true,
-        contactPerson: true,
-        sampleInvoice: true,
-      },
-      verifiedAt: "2026-01-20T00:00:00.000Z",
-    },
-    {
-      id: "org-uet",
-      name: "UET Lahore",
-      type: "university",
-      city: "Lahore",
-      registrationNo: "HEC-UET-LHR",
-      bankIbanMasked: "PK00••••••••4455",
-      status: "verified",
-      checks: {
-        legalRegistration: true,
-        physicalAddress: true,
-        bankAccountOwnership: true,
-        contactPerson: true,
-        sampleInvoice: true,
-      },
-      verifiedAt: "2026-03-01T00:00:00.000Z",
-    },
-    {
-      id: "org-wapda",
-      name: "WAPDA",
-      type: "utility",
-      city: "Faisalabad",
-      registrationNo: "UTIL-WAPDA",
-      bankIbanMasked: "PK00••••••••7788",
-      status: "bank_verified",
-      checks: {
-        legalRegistration: true,
-        physicalAddress: true,
-        bankAccountOwnership: true,
-        contactPerson: true,
-        sampleInvoice: false,
-      },
-      verifiedAt: null,
-    },
-    {
-      id: "org-grocery",
-      name: "Verified Grocery Vendor",
-      type: "vendor",
-      city: "Rawalpindi",
-      registrationNo: "NTN-998877",
-      bankIbanMasked: "PK00••••••••3322",
-      status: "documents",
-      checks: {
-        legalRegistration: true,
-        physicalAddress: true,
-        bankAccountOwnership: false,
-        contactPerson: true,
-        sampleInvoice: true,
-      },
-      verifiedAt: null,
-    },
+    { id: "org-egypt-child", name: "Children's Cancer Hospital Egypt", type: "hospital", city: "Cairo", country: "EG", registrationNo: "EG-HOSP-001", bankIbanMasked: "EG00••••••••1001", status: "verified", checks: { legalRegistration: true, physicalAddress: true, bankAccountOwnership: true, contactPerson: true, sampleInvoice: true }, verifiedAt: "2026-03-01T00:00:00.000Z" },
+    { id: "org-id-sma", name: "SMA Negeri Partner School", type: "school", city: "Jakarta", country: "ID", registrationNo: "ID-SCH-214", bankIbanMasked: "ID00••••••••2002", status: "verified", checks: { legalRegistration: true, physicalAddress: true, bankAccountOwnership: true, contactPerson: true, sampleInvoice: true }, verifiedAt: "2026-03-05T00:00:00.000Z" },
+    { id: "org-ke-grocery", name: "Verified Grocery Cooperative", type: "vendor", city: "Nairobi", country: "KE", registrationNo: "KE-VEN-330", bankIbanMasked: "KE00••••••••3003", status: "verified", checks: { legalRegistration: true, physicalAddress: true, bankAccountOwnership: true, contactPerson: true, sampleInvoice: true }, verifiedAt: "2026-03-10T00:00:00.000Z" },
+    { id: "org-pk-power", name: "Regional Power Utility", type: "utility", city: "Lahore", country: "PK", registrationNo: "PK-UTIL-PWR", bankIbanMasked: "PK00••••••••4004", status: "bank_verified", checks: { legalRegistration: true, physicalAddress: true, bankAccountOwnership: true, contactPerson: true, sampleInvoice: false }, verifiedAt: null },
+    { id: "org-tr-aci", name: "Acibadem Healthcare Group", type: "hospital", city: "Istanbul", country: "TR", registrationNo: "TR-HOSP-088", bankIbanMasked: "TR00••••••••5005", status: "verified", checks: { legalRegistration: true, physicalAddress: true, bankAccountOwnership: true, contactPerson: true, sampleInvoice: true }, verifiedAt: "2026-02-20T00:00:00.000Z" },
+    { id: "org-bd-buet", name: "BUET Partner Accounts", type: "university", city: "Dhaka", country: "BD", registrationNo: "BD-UNI-BUET", bankIbanMasked: "BD00••••••••6006", status: "verified", checks: { legalRegistration: true, physicalAddress: true, bankAccountOwnership: true, contactPerson: true, sampleInvoice: true }, verifiedAt: "2026-04-01T00:00:00.000Z" },
+    { id: "org-my-pharm", name: "Verified Community Pharmacy", type: "vendor", city: "Kuala Lumpur", country: "MY", registrationNo: "MY-PHARM-12", bankIbanMasked: "MY00••••••••7007", status: "verified", checks: { legalRegistration: true, physicalAddress: true, bankAccountOwnership: true, contactPerson: true, sampleInvoice: true }, verifiedAt: "2026-04-05T00:00:00.000Z" },
+    { id: "org-jo-ngo", name: "Local NGO Partner", type: "ngo", city: "Amman", country: "JO", registrationNo: "JO-NGO-019", bankIbanMasked: "JO00••••••••8008", status: "verified", checks: { legalRegistration: true, physicalAddress: true, bankAccountOwnership: true, contactPerson: true, sampleInvoice: true }, verifiedAt: "2026-04-08T00:00:00.000Z" },
+    { id: "org-ma-gas", name: "National Gas Utility", type: "utility", city: "Casablanca", country: "MA", registrationNo: "MA-UTIL-GAS", bankIbanMasked: "MA00••••••••9009", status: "bank_verified", checks: { legalRegistration: true, physicalAddress: true, bankAccountOwnership: true, contactPerson: true, sampleInvoice: false }, verifiedAt: null },
+    { id: "org-ng-water", name: "Municipal Water Board", type: "utility", city: "Lagos", country: "NG", registrationNo: "NG-UTIL-H2O", bankIbanMasked: "NG00••••••••1010", status: "bank_verified", checks: { legalRegistration: true, physicalAddress: true, bankAccountOwnership: true, contactPerson: true, sampleInvoice: false }, verifiedAt: null },
   ];
 
   function load() {
