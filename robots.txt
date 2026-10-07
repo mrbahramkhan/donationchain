@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /donor/dashboard.html
+
+Sitemap: https://mrbahramkhan.github.io/donationchain/sitemap.xml
