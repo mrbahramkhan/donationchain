@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'screens/login_screen.dart';
 import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
+import 'services/locale_service.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -22,6 +23,7 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     await NotificationService().init();
+    await LocaleService.load();
     debugPrint('Firebase + FCM initialized');
   } catch (e) {
     debugPrint('Firebase init skipped/failed (add real google-services.json): $e');

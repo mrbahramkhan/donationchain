@@ -3,6 +3,7 @@ import 'package:percent_indicator/percent_indicator.dart';
 import '../models/donation_case.dart';
 import '../services/data_service.dart';
 import '../theme/app_theme.dart';
+import '../services/locale_service.dart';
 import 'donate_screen.dart';
 
 class CasesScreen extends StatefulWidget {
@@ -111,11 +112,11 @@ class _CasesScreenState extends State<CasesScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
-                _filterChip('all', 'All'),
-                _filterChip('medical', 'Medical'),
-                _filterChip('education', 'Education'),
-                _filterChip('food', 'Food'),
-                _filterChip('utility', 'Utility'),
+                _filterChip('all', LocaleService.t('all')),
+                _filterChip('medical', LocaleService.t('medical')),
+                _filterChip('education', LocaleService.t('education')),
+                _filterChip('food', LocaleService.t('food')),
+                _filterChip('utility', LocaleService.t('utility')),
               ],
             ),
           ),
@@ -131,7 +132,7 @@ class _CasesScreenState extends State<CasesScreen> {
                           Icon(Icons.filter_list_off, size: 48, color: Colors.grey.shade400),
                           const SizedBox(height: 12),
                           Text(
-                            'No cases in this category',
+                            LocaleService.t('emptyCases'),
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               color: Colors.grey.shade800,
@@ -146,7 +147,7 @@ class _CasesScreenState extends State<CasesScreen> {
                           const SizedBox(height: 16),
                           TextButton(
                             onPressed: () => setState(() => filter = 'all'),
-                            child: const Text('Show all cases'),
+                            child: Text(LocaleService.t('showAll')),
                           ),
                         ],
                       ),
@@ -233,7 +234,7 @@ class _CasesScreenState extends State<CasesScreen> {
                       children: [
                         Icon(Icons.verified, size: 16, color: AppTheme.success),
                         SizedBox(width: 4),
-                        Text('Verified', style: TextStyle(color: AppTheme.success, fontSize: 12, fontWeight: FontWeight.w600)),
+                        Text(LocaleService.t('verified'), style: TextStyle(color: AppTheme.success, fontSize: 12, fontWeight: FontWeight.w600)),
                       ],
                     ),
                 ],
@@ -269,7 +270,7 @@ class _CasesScreenState extends State<CasesScreen> {
                       MaterialPageRoute(builder: (_) => DonateScreen(caseItem: c)),
                     );
                   },
-                  child: const Text('Donate Now'),
+                  child: Text(LocaleService.t('donate')),
                 ),
               ),
             ],

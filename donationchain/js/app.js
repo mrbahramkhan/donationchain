@@ -1003,6 +1003,22 @@ function renderQuickAmounts() {
 }
 
 
+
+function onGlobalCountryChange(code) {
+  if (!window.DCLocales) return;
+  DCLocales.setCountryCode(code); // also switches default language for that country
+  try {
+    const z = document.getElementById("zakat-country");
+    if (z) z.value = code;
+  } catch (_) {}
+  if (typeof onZakatCountryChange === "function") {
+    try { onZakatCountryChange(); } catch (_) {}
+  }
+  if (typeof renderCases === "function") {
+    try { renderCases(); } catch (_) {}
+  }
+}
+
 function onZakatCountryChange() {
   const sel = document.getElementById("zakat-country");
   if (!sel || !window.DCLocales) return;
@@ -1028,8 +1044,13 @@ function updateZakatLabels() {
 function initGlobalLocaleUI() {
   if (window.DCLocales) {
     DCLocales.fillCountrySelect(document.getElementById("zakat-country"));
+    DCLocales.fillCountrySelect(document.getElementById("country-select"));
     const langSel = document.getElementById("lang-select");
-    if (langSel && langSel.options.length < 5) DCLocales.fillLangSelect(langSel, (window.I18n && I18n.getLang && I18n.getLang()) || "en");
+    if (langSel) DCLocales.fillLangSelect(langSel, (window.I18n && I18n.getLang && I18n.getLang()) || "en");
+    try {
+      const cs = document.getElementById("country-select");
+      if (cs) cs.value = DCLocales.getCountryCode();
+    } catch (_) {}
   }
   updateZakatLabels();
 }

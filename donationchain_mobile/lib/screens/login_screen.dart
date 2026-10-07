@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/data_service.dart';
 import '../services/device_api.dart';
 import '../theme/app_theme.dart';
+import '../services/locale_service.dart';
 import 'apply_screen.dart';
 import 'home_shell.dart';
 
@@ -109,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: _RoleCard(
                       selected: role == 'donor',
                       icon: Icons.volunteer_activism_outlined,
-                      title: 'Donate',
+                      title: LocaleService.t('role.donate'),
                       subtitle: 'Support verified cases',
                       onTap: () => setState(() => role = 'donor'),
                     ),
@@ -119,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: _RoleCard(
                       selected: role == 'seeker',
                       icon: Icons.handshake_outlined,
-                      title: 'Need help',
+                      title: LocaleService.t('role.needHelp'),
                       subtitle: 'Apply for support',
                       onTap: () => setState(() => role = 'seeker'),
                     ),
